@@ -22,9 +22,7 @@ impl HardwareBackend {
     /// Auto-detect the available hardware backend.
     pub fn detect() -> Self {
         // Check for CUDA
-        if std::env::var("CUDA_VISIBLE_DEVICES").is_ok()
-            || cfg!(feature = "cuda")
-        {
+        if std::env::var("CUDA_VISIBLE_DEVICES").is_ok() {
             return HardwareBackend::Cuda;
         }
         // Check for Metal (macOS)
@@ -33,7 +31,8 @@ impl HardwareBackend {
             return HardwareBackend::Metal;
         }
         // Check for Vulkan
-        if cfg!(feature = "vulkan") {
+        #[cfg(feature = "vulkan")]
+        {
             return HardwareBackend::Vulkan;
         }
         HardwareBackend::Cpu
