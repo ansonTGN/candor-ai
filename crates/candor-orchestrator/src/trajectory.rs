@@ -62,7 +62,7 @@ pub async fn append_to_jsonl(
 
 /// Extract trajectory entries from SurrealDB execution logs.
 pub async fn extract_trajectories(
-    memory: &MemorySystem,
+    _memory: &MemorySystem,
     session_filter: Option<&str>,
     jsonl_path: &PathBuf,
 ) -> Result<usize, CoreError> {

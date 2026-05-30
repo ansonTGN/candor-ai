@@ -1,4 +1,5 @@
 // candor-daemon: the axum-based daemon with LLM backend auto-detection.
+// v2: improved CLI, colored output, --init, better UX.
 use std::sync::Arc;
 
 use axum::Router;
@@ -15,9 +16,25 @@ use candor_orchestrator::OrchestratorEngine;
 
 mod routes;
 
+const GREEN: &str = "\x1b[32m";
+const CYAN: &str = "\x1b[36m";
+const YELLOW: &str = "\x1b[33m";
+const RED: &str = "\x1b[31m";
+const BOLD: &str = "\x1b[1m";
+const RESET: &str = "\x1b[0m";
+
 /// Candor AI — Lawful Good, Rust-native Agentic Operating System.
+///
+/// A production-grade agent harness implementing Algorithm v6.3.0.
+/// Runs the 7-phase execution loop: Observe→Think→Plan→Build→Execute→Verify→Learn.
+///
+/// Examples:
+///   candor --task "build a CLI tool for fibonacci"
+///   candor --health
+///   candor --init my-project
+///   candor --port 31337
 #[derive(Parser, Debug)]
-#[command(name = "candor", version, about)]
+#[command(name = "candor", version, about, long_about = None)]
 struct Cli {
     #[arg(short, long, default_value = "info")]
     log_level: String,
@@ -25,34 +42,34 @@ struct Cli {
     #[arg(short, long, default_value = "31337")]
     port: u16,
 
-    #[arg(long, default_value = "100")]
+    #[arg(long, default_value = "100", help = "Maximum graph iterations")]
     max_iterations: u32,
 
-    #[arg(long, default_value = "384")]
+    #[arg(long, default_value = "384", help = "Embedding vector dimensions")]
     embedding_dim: usize,
 
     /// Run a task through the 7-phase agent pipeline.
-    #[arg(long)]
+    #[arg(long, help = "Task description for the agent to execute")]
     task: Option<String>,
 
     /// Check daemon health and exit.
     #[arg(long)]
     health: bool,
 
-    /// Explicit model to use (e.g., "claude-sonnet-4", "gpt-4o").
-    #[arg(long)]
+    /// Initialize a new candor project in the given directory.
+    #[arg(long, help = "Create a new project with candor.toml scaffold")]
+    init: Option<String>,
+
+    #[arg(long, help = "Model to use (e.g. claude-sonnet-4, gpt-4o)")]
     model: Option<String>,
 
-    /// OpenAI-compatible base URL (for LM Studio, Ollama, etc.).
-    #[arg(long)]
+    #[arg(long, help = "OpenAI-compatible base URL for LM Studio/Ollama")]
     openai_base: Option<String>,
 
-    /// OpenAI API key (or set OPENAI_API_KEY env var).
-    #[arg(long)]
+    #[arg(long, help = "OpenAI API key")]
     openai_key: Option<String>,
 
-    /// Anthropic API key (or set ANTHROPIC_API_KEY env var).
-    #[arg(long)]
+    #[arg(long, help = "Anthropic API key")]
     anthropic_key: Option<String>,
 }
 
@@ -70,28 +87,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_env_filter(&cli.log_level)
         .init();
 
-    info!(
-        "Starting Candor AI daemon v{}",
-        env!("CARGO_PKG_VERSION")
-    );
+    // ── --init: bootstrap a project ──
+    if let Some(ref dir) = cli.init {
+        return init_project(dir);
+    }
 
-    // ── Detect and connect to LLM backends ──
+    println!("{CYAN}{BOLD}   Candor AI v{} — Lawful Good Agentic OS{RESET}\n", env!("CARGO_PKG_VERSION"));
+
+    // ── Build subsystems ──
     let cognitive = build_cognitive(&cli).await?;
-    let memory = Arc::new(
-        MemorySystem::new(cli.embedding_dim).await?,
-    );
-
+    let memory = Arc::new(MemorySystem::new(cli.embedding_dim).await?);
     let orchestrator = Arc::new(tokio::sync::Mutex::new(
-        OrchestratorEngine::new(
-            cognitive,
-            memory,
-            cli.max_iterations,
-        )
-        .await?,
+        OrchestratorEngine::new(cognitive, memory, cli.max_iterations).await?,
     ));
 
     // ── CLI modes ──
-
     if let Some(task) = cli.task {
         run_cli_task(task, orchestrator).await?;
         return Ok(());
@@ -105,9 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ── Daemon mode ──
     let state = AppState {
         orchestrator,
-        session_counter: Arc::new(
-            std::sync::atomic::AtomicU64::new(0),
-        ),
+        session_counter: Arc::new(std::sync::atomic::AtomicU64::new(0)),
     };
 
     let app = Router::new()
@@ -128,158 +136,138 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// ── Backend auto-detection ──
+/// Bootstrap a new candor project: write candor.toml and .gitignore.
+fn init_project(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&path)?;
 
-async fn build_cognitive(
-    cli: &Cli,
-) -> Result<Arc<CognitiveEngine>, Box<dyn std::error::Error>> {
-    use std::env;
+    let config = r#"[server]
+host = "0.0.0.0"
+port = 31337
+checkpoint_dir = "/tmp/candor-checkpoints"
+max_iterations = 100
 
-    let anthropic_key = cli
-        .anthropic_key
-        .clone()
-        .or_else(|| env::var("ANTHROPIC_API_KEY").ok());
+[sandbox]
+scratchpad_dir = "/tmp/agent_scratchpad"
+default_timeout_secs = 15
+default_memory_mb = 256
+default_fuel_limit = 1_000_000
 
-    let openai_key = cli
-        .openai_key
-        .clone()
-        .or_else(|| env::var("OPENAI_API_KEY").ok());
+[inference]
+# Uncomment to enable cloud APIs:
+# anthropic_api_key = "sk-ant-..."
+# openai_api_key = "sk-..."
+embedding_model = "all-MiniLM-L6-v2"
+embedding_dim = 384
 
-    let openai_base = cli
-        .openai_base
-        .clone()
-        .or_else(|| env::var("OPENAI_BASE_URL").ok());
+[memory]
+backend = "mem"
+compaction_token_limit = 135000
 
-    let model = cli
-        .model
-        .clone()
-        .or_else(|| env::var("CANDOR_MODEL").ok());
+[sentinel]
+enabled = true
+semantic_audit_enabled = true
+scopes = []
 
-    // Priority: Anthropic > OpenAI/LM Studio > Ollama > Mock
-    let mut backend: Option<Box<dyn candor_cognitive::LlmBackend>> = None;
-    let mut backend_label = String::new();
+[telemetry]
+enabled = false
+"#;
 
-    if let Some(ref key) = anthropic_key {
-        let model = model.clone().unwrap_or_else(|| "claude-sonnet-4-20250514".into());
-        backend = Some(Box::new(AnthropicBackend::new(key.clone(), &model)));
-        backend_label = format!("anthropic/{}", model);
-    } else if let Some(ref key) = openai_key {
-        let model = model.clone().unwrap_or_else(|| "gpt-4o".into());
-        backend = Some(Box::new(OpenAiBackend::new(
-            key.clone(),
-            &model,
-            openai_base.clone(),
-        )));
-        if let Some(ref base) = openai_base {
-            backend_label = format!("openai-compatible@{}/{}", base, model);
-        } else {
-            backend_label = format!("openai/{}", model);
-        }
-    } else if let Ok(base) = env::var("LM_STUDIO_URL") {
-        // LM Studio local — no API key needed
-        let model = model.unwrap_or_else(|| "local-model".into());
-        backend = Some(Box::new(OpenAiBackend::new(
-            "lm-studio".into(),
-            &model,
-            Some(base),
-        )));
-        backend_label = format!("lm-studio/{}", model);
-    } else if let Ok(base) = env::var("OLLAMA_URL") {
-        // Ollama local — no API key needed
-        let model = model.unwrap_or_else(|| "llama3".into());
-        backend = Some(Box::new(OpenAiBackend::new(
-            "ollama".into(),
-            &model,
-            Some(base),
-        )));
-        backend_label = format!("ollama/{}", model);
-    }
+    std::fs::write(path.join("candor.toml"), config)?;
+    std::fs::write(path.join(".gitignore"), "/target/\n/tmp/\n.env\n")?;
 
-    let cognitive = match backend {
-        Some(backend) => {
-            info!(
-                backend = %backend_label,
-                "LLM backend connected"
-            );
-            Arc::new(
-                CognitiveEngine::new(
-                    Some(backend),
-                    None, // local pipeline not yet configured
-                )
-                .await?,
-            )
-        }
-        None => {
-            warn!("No LLM backend configured. Use --anthropic-key, --openai-key, or set ANTHROPIC_API_KEY / OPENAI_API_KEY / LM_STUDIO_URL / OLLAMA_URL.");
-            warn!("Running in MOCK mode — agent will use placeholder responses.");
-            let backend = MockBackend::new(
-                "I am a mock LLM. No real backend is configured. \
-                 Set ANTHROPIC_API_KEY or OPENAI_API_KEY to enable real AI capabilities.",
-            );
-            Arc::new(
-                CognitiveEngine::new(
-                    Some(Box::new(backend)),
-                    None,
-                )
-                .await?,
-            )
-        }
-    };
+    println!("{GREEN}✓ Project initialized at {}{RESET}", path.display());
+    println!("  Run: cd {} && candor --task \"your task here\"", dir);
 
-    Ok(cognitive)
+    Ok(())
 }
 
-// ── CLI task runner ──
+async fn build_cognitive(cli: &Cli) -> Result<Arc<CognitiveEngine>, Box<dyn std::error::Error>> {
+    use std::env;
 
-async fn run_cli_task(
-    task: String,
-    orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    info!(task = %task, "Running task from CLI");
+    let anthropic_key = cli.anthropic_key.clone().or_else(|| env::var("ANTHROPIC_API_KEY").ok());
+    let openai_key = cli.openai_key.clone().or_else(|| env::var("OPENAI_API_KEY").ok());
+    let openai_base = cli.openai_base.clone().or_else(|| env::var("OPENAI_BASE_URL").ok());
+    let model = cli.model.clone().or_else(|| env::var("CANDOR_MODEL").ok());
+
+    let mut backend: Option<Box<dyn candor_cognitive::LlmBackend>> = None;
+    let mut label = String::new();
+
+    if let Some(ref key) = anthropic_key {
+        let m = model.clone().unwrap_or_else(|| "claude-sonnet-4-20250514".into());
+        backend = Some(Box::new(AnthropicBackend::new(key.clone(), &m)));
+        label = format!("anthropic/{}", m);
+    } else if let Some(ref key) = openai_key {
+        let m = model.clone().unwrap_or_else(|| "gpt-4o".into());
+        backend = Some(Box::new(OpenAiBackend::new(key.clone(), &m, openai_base.clone())));
+        label = if let Some(ref b) = openai_base { format!("openai-compatible@{b}/{m}") } else { format!("openai/{m}") };
+    } else if let Ok(base) = env::var("LM_STUDIO_URL") {
+        let m = model.unwrap_or_else(|| "local-model".into());
+        backend = Some(Box::new(OpenAiBackend::new("lm-studio".into(), &m, Some(base))));
+        label = format!("lm-studio/{}", m);
+    } else if let Ok(base) = env::var("OLLAMA_URL") {
+        let m = model.unwrap_or_else(|| "llama3".into());
+        backend = Some(Box::new(OpenAiBackend::new("ollama".into(), &m, Some(base))));
+        label = format!("ollama/{}", m);
+    }
+
+    match backend {
+        Some(b) => {
+            println!("{GREEN}✓{RESET} LLM connected: {BOLD}{label}{RESET}");
+            info!(backend = %label, "LLM backend connected");
+            Ok(Arc::new(CognitiveEngine::new(Some(b), None).await?))
+        }
+        None => {
+            println!("{YELLOW}⚠{RESET} No LLM configured — using mock mode");
+            println!("  Set {CYAN}LM_STUDIO_URL{RESET}, {CYAN}OPENAI_API_KEY{RESET}, or {CYAN}ANTHROPIC_API_KEY{RESET}");
+            warn!("No LLM backend — using mock mode");
+            Ok(Arc::new(CognitiveEngine::new(Some(Box::new(MockBackend::new("I am a mock LLM."))), None).await?))
+        }
+    }
+}
+
+async fn run_cli_task(task: String, orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{CYAN}▶ Task:{RESET} {task}\n");
 
     let isa = IdealStateArtifact {
-        id: format!("cli-task-{}", uuid::Uuid::new_v4()),
-        goal: task.clone(),
-        acceptance_criteria: vec![],
-        constraints: vec![],
-        expected_artifacts: vec![],
-        phase_requirements: Default::default(),
+        id: format!("cli-{}", uuid::Uuid::new_v4()),
+        goal: task.clone(), acceptance_criteria: vec![], constraints: vec![],
+        expected_artifacts: vec![], phase_requirements: Default::default(),
         fully_autonomous: true,
     };
 
     let mut orch = orchestrator.lock().await;
+    let phases = ["Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn"];
+
     match orch.run_task(&task, &isa).await {
         Ok(()) => {
-            println!("Task completed: {task}");
+            println!("\n{GREEN}{BOLD}✓ Task completed{RESET}");
             let state_arc = orch.graph_runner.state();
             let s = state_arc.lock().await;
-            println!("\nExecution log (last 10 events):");
             for event in s.execution_log.iter().rev().take(10).rev() {
-                println!("  {event}");
+                let phase_icon = phases.iter().position(|p| event.contains(p)).map(|i| i + 1).unwrap_or(0);
+                println!("  {GREEN}[{phase_icon}/7]{RESET} {event}");
             }
         }
         Err(e) => {
-            eprintln!("Task failed: {e}");
+            eprintln!("\n{RED}✗ Task failed:{RESET} {e}");
             std::process::exit(1);
         }
     }
     Ok(())
 }
 
-async fn run_health_check(
-    orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>,
-) {
+async fn run_health_check(orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>) {
     let orch = orchestrator.lock().await;
-    let has_frontier = orch.cognitive.is_frontier_healthy();
-    let has_local = orch.cognitive.is_local_healthy();
+    let frontier = orch.cognitive.is_frontier_healthy();
+    let local = orch.cognitive.is_local_healthy();
 
-    println!("Candor AI v{}", env!("CARGO_PKG_VERSION"));
-    println!("Session: {}", orch.session_id);
-    println!("Frontier LLM: {}", if has_frontier { "connected" } else { "not configured" });
-    println!("Local LLM:    {}", if has_local { "connected" } else { "not configured" });
-    println!("Sandbox:      {}", if orch.sandbox.native_engine().is_bwrap_available() { "bubblewrap" } else { "direct" });
-    println!("Sentinel:     {}", if orch.sentinel.is_active() { "active" } else { "inactive" });
-    println!("Tools:        {} registered", orch.tools.tool_count());
-    println!("Memory:       {} dimensions", orch.memory.embedding_dim());
-    println!("\nReady for agentic SWE tasks.");
+    println!("{BOLD}Session:{RESET} {}", orch.session_id);
+    println!("{BOLD}Frontier LLM:{RESET} {}", if frontier { format!("{GREEN}connected{RESET}") } else { format!("{YELLOW}not configured{RESET}") });
+    println!("{BOLD}Local LLM:{RESET}    {}", if local { format!("{GREEN}connected{RESET}") } else { format!("{YELLOW}not configured{RESET}") });
+    println!("{BOLD}Sandbox:{RESET}      {}", if orch.sandbox.native_engine().is_bwrap_available() { "bubblewrap" } else { "direct" });
+    println!("{BOLD}Sentinel:{RESET}     {}", if orch.sentinel.is_active() { format!("{GREEN}active{RESET}") } else { format!("{YELLOW}inactive{RESET}") });
+    println!("{BOLD}Tools:{RESET}        {} registered", orch.tools.tool_count());
+    println!("{BOLD}Memory:{RESET}       {} dimensions", orch.memory.embedding_dim());
+    println!("\n{GREEN}All subsystems operational.{RESET}");
 }

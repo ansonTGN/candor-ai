@@ -100,8 +100,8 @@ pub fn extract_skills_from_log(
             .join("-");
 
         let pitfalls = log.iter()
-            .filter(|e| e.contains("failed") || e.contains("error") || e.contains("FAILED")).cloned()
-            .take(5)
+            .filter(|e| e.contains("failed") || e.contains("error") || e.contains("FAILED"))
+            .take(5).cloned()
             .collect();
 
         let skill = Skill {
