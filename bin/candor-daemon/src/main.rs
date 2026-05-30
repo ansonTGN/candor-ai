@@ -19,7 +19,8 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 
 use candor_cognitive::{
-    AnthropicBackend, CognitiveEngine, MockBackend, OpenAiBackend,
+    AnthropicBackend, CognitiveEngine, DeepSeekBackend, GeminiBackend,
+    MockBackend, OpenAiBackend,
 };
 use candor_core::ideal::IdealStateArtifact;
 use candor_memory::store::MemorySystem;
@@ -214,6 +215,14 @@ async fn build_cognitive(
         let m = model_name.clone().unwrap_or_else(|| "claude-sonnet-4-20250514".into());
         backend = Some(Box::new(AnthropicBackend::new(key.clone(), &m)));
         label = format!("anthropic/{m}");
+    } else if let Some(ref key) = env::var("DEEPSEEK_API_KEY").ok().as_ref() {
+        let m = model_name.clone().unwrap_or_else(|| "deepseek-chat".into());
+        backend = Some(Box::new(DeepSeekBackend::new(key.to_string(), &m)));
+        label = format!("deepseek/{m}");
+    } else if let Some(ref key) = env::var("GEMINI_API_KEY").ok().as_ref() {
+        let m = model_name.clone().unwrap_or_else(|| "gemini-2.5-flash".into());
+        backend = Some(Box::new(GeminiBackend::new(key.to_string(), &m)));
+        label = format!("gemini/{m}");
     } else if let Some(ref key) = openai_key {
         let m = model_name.clone().unwrap_or_else(|| "gpt-4o".into());
         backend = Some(Box::new(OpenAiBackend::new(key.clone(), &m, openai_base.clone())));
@@ -235,7 +244,7 @@ async fn build_cognitive(
         }
         None => {
             eprintln!("{YELLOW}⚠ LLM: Not configured — using Mock{RESET}");
-            eprintln!("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, LM_STUDIO_URL, or OLLAMA_URL");
+            eprintln!("  Set ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, LM_STUDIO_URL, or OLLAMA_URL");
             Ok(Arc::new(CognitiveEngine::new(Some(Box::new(MockBackend::new("mock"))), None).await?))
         }
     }

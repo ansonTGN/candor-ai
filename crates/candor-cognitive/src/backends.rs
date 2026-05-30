@@ -18,6 +18,16 @@ pub struct LlmRequest {
     pub model_override: Option<String>,
 }
 
+impl LlmRequest {
+    pub fn validate(&self) -> Result<(), CoreError> {
+        let approx_tokens = self.prompt.len() / 4;
+        if approx_tokens > 128_000 {
+            return Err(CoreError::Internal("Prompt exceeds 128K token limit".into()));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LlmResponse {
     pub text: String,
@@ -65,7 +75,6 @@ impl LlmBackend for MockBackend {
 /// Wraps an API call with circuit breaker + exponential backoff retry.
 async fn call_with_protection<F, Fut>(
     cb: &CircuitBreaker,
-    label: &str,
     f: F,
 ) -> Result<reqwest::Response, CoreError>
 where
@@ -85,6 +94,16 @@ where
 pub struct OpenAiBackend {
     api_key: String, base_url: String, model: String, client: reqwest::Client,
     cb: Arc<CircuitBreaker>,
+}
+
+impl std::fmt::Debug for OpenAiBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpenAiBackend")
+            .field("provider", &self.provider())
+            .field("model", &self.model)
+            .field("base_url", &self.base_url)
+            .finish_non_exhaustive()
+    }
 }
 
 impl OpenAiBackend {
@@ -115,7 +134,7 @@ impl LlmBackend for OpenAiBackend {
         });
         let url = format!("{}/chat/completions", self.base_url);
 
-        let resp = call_with_protection(&self.cb, "openai", || {
+        let resp = call_with_protection(&self.cb, || {
             let body = body.clone(); let url = url.clone();
             let key = self.api_key.clone(); let client = self.client.clone();
             async move {
@@ -149,6 +168,15 @@ pub struct AnthropicBackend {
     cb: Arc<CircuitBreaker>,
 }
 
+impl std::fmt::Debug for AnthropicBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AnthropicBackend")
+            .field("provider", &self.provider())
+            .field("model", &self.model)
+            .finish_non_exhaustive()
+    }
+}
+
 impl AnthropicBackend {
     pub fn new(api_key: String, model: impl Into<String>) -> Self {
         let client = reqwest::Client::builder()
@@ -174,7 +202,7 @@ impl LlmBackend for AnthropicBackend {
             "messages": [{"role": "user", "content": request.prompt}],
         });
 
-        let resp = call_with_protection(&self.cb, "anthropic", || {
+        let resp = call_with_protection(&self.cb, || {
             let body = body.clone(); let key = self.api_key.clone();
             let model = model.clone(); let client = self.client.clone();
             async move {
@@ -209,6 +237,15 @@ pub struct DeepSeekBackend {
     cb: Arc<CircuitBreaker>,
 }
 
+impl std::fmt::Debug for DeepSeekBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DeepSeekBackend")
+            .field("provider", &self.provider())
+            .field("model", &self.model)
+            .finish_non_exhaustive()
+    }
+}
+
 impl DeepSeekBackend {
     pub fn new(api_key: String, model: impl Into<String>) -> Self {
         let client = reqwest::Client::builder()
@@ -235,7 +272,7 @@ impl LlmBackend for DeepSeekBackend {
             "stream": false,
         });
 
-        let resp = call_with_protection(&self.cb, "deepseek", || {
+        let resp = call_with_protection(&self.cb, || {
             let body = body.clone(); let key = self.api_key.clone();
             let client = self.client.clone();
             async move {
@@ -269,6 +306,15 @@ pub struct GeminiBackend {
     cb: Arc<CircuitBreaker>,
 }
 
+impl std::fmt::Debug for GeminiBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("GeminiBackend")
+            .field("provider", &self.provider())
+            .field("model", &self.model)
+            .finish_non_exhaustive()
+    }
+}
+
 impl GeminiBackend {
     pub fn new(api_key: String, model: impl Into<String>) -> Self {
         let client = reqwest::Client::builder()
@@ -289,17 +335,20 @@ impl LlmBackend for GeminiBackend {
     async fn generate(&self, request: &LlmRequest) -> Result<LlmResponse, CoreError> {
         let start = Instant::now();
         let model = request.model_override.clone().unwrap_or_else(|| self.model.clone());
-        let body = serde_json::json!({
+        let mut body = serde_json::json!({
             "contents": [{"parts": [{"text": request.prompt}]}],
             "generationConfig": {
                 "maxOutputTokens": request.max_tokens.unwrap_or(1024),
                 "temperature": request.temperature.unwrap_or(0.7),
             },
         });
+        if let Some(ref sp) = request.system_prompt {
+            body["system_instruction"] = serde_json::json!({"parts": [{"text": sp}]});
+        }
 
         let url = format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={}", &self.api_key);
 
-        let resp = call_with_protection(&self.cb, "gemini", || {
+        let resp = call_with_protection(&self.cb, || {
             let body = body.clone(); let url = url.clone(); let client = self.client.clone();
             async move {
                 let r = client.post(&url)

@@ -24,9 +24,11 @@ echo ""
 INSTALL_METHOD="${1:-auto}"
 PREFIX="${CANDOR_PREFIX:-/usr/local}"
 
+REPO="${CANDOR_REPO:-https://github.com/iknowkungfubar/candor-ai.git}"
+
 install_via_cargo() {
     echo -e "${CYAN}Building from source with cargo...${NC}"
-    cargo install --git https://github.com/iknowkungfubar/candor-ai.git candor-ai 2>&1 | tail -3
+    cargo install --git "$REPO" candor-ai 2>&1 | tail -3
     echo -e "${GREEN}✓${NC} Installed via cargo"
 }
 
