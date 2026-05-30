@@ -1,9 +1,20 @@
-// candor-daemon: the axum-based daemon with LLM backend auto-detection.
-// v2: improved CLI, colored output, --init, better UX.
+/// Candor AI — Lawful Good, Rust-native Agentic Operating System.
+///
+/// A production-grade agent harness implementing Algorithm v6.3.0.
+/// Runs the 7-phase execution loop: Observe→Think→Plan→Build→Execute→Verify→Learn.
+///
+/// Subcommands:
+///   task    Run a one-shot agent task
+///   chat    Interactive conversational mode
+///   voice   Voice-activated task via whisper STT
+///   init    Bootstrap a new candor project
+///   health  Check all subsystems
+///   doctor  Run diagnostics and repair
+///   serve   Start REST API daemon (default with --port)
 use std::sync::Arc;
 
 use axum::Router;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
 
@@ -18,77 +29,75 @@ mod chat;
 mod routes;
 mod stt;
 
-const GREEN: &str = "\x1b[32m";
-const CYAN: &str = "\x1b[36m";
-const YELLOW: &str = "\x1b[33m";
-const RED: &str = "\x1b[31m";
-const BOLD: &str = "\x1b[1m";
-const RESET: &str = "\x1b[0m";
-
 /// Candor AI — Lawful Good, Rust-native Agentic Operating System.
-///
-/// A production-grade agent harness implementing Algorithm v6.3.0.
-/// Runs the 7-phase execution loop: Observe→Think→Plan→Build→Execute→Verify→Learn.
-///
-/// Examples:
-///   candor --task "build a CLI tool for fibonacci"
-///   candor --health
-///   candor --init my-project
-///   candor --port 31337
 #[derive(Parser, Debug)]
-#[command(name = "candor", version, about, long_about = None)]
+#[command(name = "candor", version, about = "Lawful Good Rust Agentic Operating System", long_about = None)]
 struct Cli {
-    #[arg(short, long, default_value = "info")]
-    log_level: String,
+    #[command(subcommand)]
+    command: Commands,
+}
 
-    #[arg(short, long, default_value = "31337")]
-    port: u16,
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Run a one-shot agent task
+    Task {
+        /// Task description for the agent to execute
+        description: String,
+        #[arg(long, help = "Model override")]
+        model: Option<String>,
+        #[arg(long, help = "OpenAI-compatible base URL")]
+        openai_base: Option<String>,
+        #[arg(long, help = "OpenAI API key")]
+        openai_key: Option<String>,
+        #[arg(long, help = "Anthropic API key")]
+        anthropic_key: Option<String>,
+        #[arg(long, default_value = "100", help = "Max graph iterations")]
+        max_iterations: u32,
+        #[arg(long, default_value = "384", help = "Embedding dimensions")]
+        embedding_dim: usize,
+    },
 
-    #[arg(long, default_value = "100", help = "Maximum graph iterations")]
-    max_iterations: u32,
+    /// Interactive conversational mode
+    Chat {
+        #[arg(long, help = "Model override")]
+        model: Option<String>,
+        #[arg(long, help = "OpenAI-compatible base URL")]
+        openai_base: Option<String>,
+        #[arg(long, help = "OpenAI API key")]
+        openai_key: Option<String>,
+        #[arg(long, help = "Anthropic API key")]
+        anthropic_key: Option<String>,
+    },
 
-    #[arg(long, default_value = "384", help = "Embedding vector dimensions")]
-    embedding_dim: usize,
+    /// Voice-activated task via whisper STT
+    Voice {
+        #[arg(long, help = "Prompt prefix (e.g. 'In Spanish:')")]
+        prompt: Option<String>,
+        #[arg(long, help = "Record duration in seconds", default_value = "5")]
+        duration: u64,
+    },
 
-    /// Run a task through the 7-phase agent pipeline.
-    #[arg(long, help = "Task description for the agent to execute")]
-    task: Option<String>,
+    /// Bootstrap a new candor project
+    Init {
+        /// Directory path for the new project
+        path: String,
+    },
 
-    /// Enter interactive chat REPL mode (readline-style conversation).
-    #[arg(long, help = "Start an interactive conversational chat REPL")]
-    chat: bool,
+    /// Check all subsystems
+    Health,
 
-    /// Listen mode: read tasks line-by-line from stdin pipe (for AI integration).
-    #[arg(long, help = "Read tasks from stdin pipe (non-interactive)")]
-    listen: bool,
+    /// Start REST API daemon
+    Serve {
+        #[arg(short, long, default_value = "31337")]
+        port: u16,
+        #[arg(long, default_value = "100")]
+        max_iterations: u32,
+        #[arg(long, default_value = "384")]
+        embedding_dim: usize,
+    },
 
-    /// Voice task: record from microphone, transcribe with whisper, and execute.
-    #[arg(long, help = "Record voice command, transcribe, and run as a task")]
-    voice_task: bool,
-
-    /// Optional prompt prefix for --voice-task (e.g. \"In French, \").
-    #[arg(long, help = "Optional prompt prefix prepended to voice transcription")]
-    voice_prompt: Option<String>,
-
-    /// Check daemon health and exit.
-    #[arg(long)]
-    health: bool,
-
-    /// Initialize a new candor project in the given directory.
-    #[arg(long, help = "Create a new project with candor.toml scaffold")]
-    init: Option<String>,
-
-    #[arg(long, help = "Model to use (e.g. claude-sonnet-4, gpt-4o)")]
-    model: Option<String>,
-
-    #[arg(long, help = "OpenAI-compatible base URL for LM Studio/Ollama")]
-    openai_base: Option<String>,
-
-    #[arg(long, help = "OpenAI API key")]
-    openai_key: Option<String>,
-
-    #[arg(long, help = "Anthropic API key")]
-    anthropic_key: Option<String>,
+    /// Run diagnostics
+    Doctor,
 }
 
 #[derive(Clone)]
@@ -102,167 +111,131 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     tracing_subscriber::fmt()
-        .with_env_filter(&cli.log_level)
+        .with_env_filter("info")
         .init();
 
-    // ── --init: bootstrap a project ──
-    if let Some(ref dir) = cli.init {
-        return init_project(dir);
+    match cli.command {
+        Commands::Task { description, model, openai_base, openai_key, anthropic_key, max_iterations, embedding_dim } => {
+            println!("{CYAN}{BOLD}   Candor AI v{} — Task Mode{RESET}\n", env!("CARGO_PKG_VERSION"));
+            let cognitive = build_cognitive(model, openai_key, anthropic_key, openai_base).await?;
+            let memory = Arc::new(MemorySystem::new(embedding_dim).await?);
+            let orch = Arc::new(tokio::sync::Mutex::new(
+                OrchestratorEngine::new(cognitive, memory, max_iterations).await?,
+            ));
+            run_cli_task(description, orch).await?;
+        }
+        Commands::Chat { model, openai_base, openai_key, anthropic_key } => {
+            println!("{CYAN}{BOLD}   Candor AI v{} — Chat Mode{RESET}\n", env!("CARGO_PKG_VERSION"));
+            let cognitive = build_cognitive(model, openai_key, anthropic_key, openai_base).await?;
+            let memory = Arc::new(MemorySystem::new(384).await?);
+            let orch = Arc::new(tokio::sync::Mutex::new(
+                OrchestratorEngine::new(cognitive, memory, 100).await?,
+            ));
+            chat::run_chat(orch).await?;
+        }
+        Commands::Voice { prompt, duration } => {
+            println!("{CYAN}{BOLD}   Candor AI v{} — Voice Mode{RESET}\n", env!("CARGO_PKG_VERSION"));
+            run_voice_task(prompt, duration).await?;
+        }
+        Commands::Init { path } => {
+            init_project(&path)?;
+        }
+        Commands::Health => {
+            let cognitive = build_cognitive(None, None, None, None).await?;
+            let memory = Arc::new(MemorySystem::new(384).await?);
+            let orch = Arc::new(tokio::sync::Mutex::new(
+                OrchestratorEngine::new(cognitive, memory, 100).await?,
+            ));
+            run_health_check(orch).await;
+        }
+        Commands::Serve { port, max_iterations, embedding_dim } => {
+            let cognitive = build_cognitive(None, None, None, None).await?;
+            let memory = Arc::new(MemorySystem::new(embedding_dim).await?);
+            let orch = Arc::new(tokio::sync::Mutex::new(
+                OrchestratorEngine::new(cognitive, memory, max_iterations).await?,
+            ));
+            let state = AppState {
+                orchestrator: orch,
+                session_counter: Arc::new(std::sync::atomic::AtomicU64::new(0)),
+            };
+            let app = Router::new()
+                .route("/", axum::routing::get(routes::root))
+                .route("/api/health", axum::routing::get(routes::health))
+                .route("/api/status", axum::routing::get(routes::status))
+                .route("/api/task", axum::routing::post(routes::submit_task))
+                .route("/api/metrics", axum::routing::get(routes::metrics))
+                .layer(CorsLayer::permissive())
+                .with_state(state);
+            let addr = format!("0.0.0.0:{}", port);
+            info!("Candor AI daemon listening on http://{addr}");
+            let listener = tokio::net::TcpListener::bind(&addr).await?;
+            axum::serve(listener, app).await?;
+        }
+        Commands::Doctor => {
+            run_doctor().await;
+        }
     }
-
-    println!("{CYAN}{BOLD}   Candor AI v{} — Lawful Good Agentic OS{RESET}\n", env!("CARGO_PKG_VERSION"));
-
-    // ── Build subsystems ──
-    let cognitive = build_cognitive(&cli).await?;
-    let memory = Arc::new(MemorySystem::new(cli.embedding_dim).await?);
-    let orchestrator = Arc::new(tokio::sync::Mutex::new(
-        OrchestratorEngine::new(cognitive, memory, cli.max_iterations).await?,
-    ));
-
-    // ── CLI modes ──
-    if let Some(task) = cli.task {
-        run_cli_task(task, orchestrator).await?;
-        return Ok(());
-    }
-
-    if cli.chat {
-        chat::run_chat(orchestrator).await?;
-        return Ok(());
-    }
-
-    if cli.listen {
-        chat::run_listen(orchestrator).await?;
-        return Ok(());
-    }
-
-    // ── Voice task ──
-    if cli.voice_task {
-        run_voice_task(cli.voice_prompt, orchestrator).await?;
-        return Ok(());
-    }
-
-    if cli.health {
-        run_health_check(orchestrator).await;
-        return Ok(());
-    }
-
-    // ── Daemon mode ──
-    let state = AppState {
-        orchestrator,
-        session_counter: Arc::new(std::sync::atomic::AtomicU64::new(0)),
-    };
-
-    let app = Router::new()
-        .route("/", axum::routing::get(routes::root))
-        .route("/api/health", axum::routing::get(routes::health))
-        .route("/api/status", axum::routing::get(routes::status))
-        .route("/api/task", axum::routing::post(routes::submit_task))
-        .route("/api/metrics", axum::routing::get(routes::metrics))
-        .layer(CorsLayer::permissive())
-        .with_state(state);
-
-    let addr = format!("0.0.0.0:{}", cli.port);
-    info!("Life Dashboard listening on http://{addr}");
-
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
-
     Ok(())
 }
 
-/// Bootstrap a new candor project: write candor.toml and .gitignore.
-fn init_project(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let path = std::path::PathBuf::from(dir);
-    std::fs::create_dir_all(&path)?;
+// ── Color constants ──
+const GREEN: &str = "\x1b[32m";
+const CYAN: &str = "\x1b[36m";
+const YELLOW: &str = "\x1b[33m";
+const RED: &str = "\x1b[31m";
+const BOLD: &str = "\x1b[1m";
+const RESET: &str = "\x1b[0m";
 
-    let config = r#"[server]
-host = "0.0.0.0"
-port = 31337
-checkpoint_dir = "/tmp/candor-checkpoints"
-max_iterations = 100
+// ── Backend construction ──
 
-[sandbox]
-scratchpad_dir = "/tmp/agent_scratchpad"
-default_timeout_secs = 15
-default_memory_mb = 256
-default_fuel_limit = 1_000_000
-
-[inference]
-# Uncomment to enable cloud APIs:
-# anthropic_api_key = "sk-ant-..."
-# openai_api_key = "sk-..."
-embedding_model = "all-MiniLM-L6-v2"
-embedding_dim = 384
-
-[memory]
-backend = "mem"
-compaction_token_limit = 135000
-
-[sentinel]
-enabled = true
-semantic_audit_enabled = true
-scopes = []
-
-[telemetry]
-enabled = false
-"#;
-
-    std::fs::write(path.join("candor.toml"), config)?;
-    std::fs::write(path.join(".gitignore"), "/target/\n/tmp/\n.env\n")?;
-
-    println!("{GREEN}✓ Project initialized at {}{RESET}", path.display());
-    println!("  Run: cd {} && candor --task \"your task here\"", dir);
-
-    Ok(())
-}
-
-async fn build_cognitive(cli: &Cli) -> Result<Arc<CognitiveEngine>, Box<dyn std::error::Error>> {
+async fn build_cognitive(
+    model: Option<String>, openai_key: Option<String>,
+    anthropic_key: Option<String>, openai_base: Option<String>,
+) -> Result<Arc<CognitiveEngine>, Box<dyn std::error::Error>> {
     use std::env;
 
-    let anthropic_key = cli.anthropic_key.clone().or_else(|| env::var("ANTHROPIC_API_KEY").ok());
-    let openai_key = cli.openai_key.clone().or_else(|| env::var("OPENAI_API_KEY").ok());
-    let openai_base = cli.openai_base.clone().or_else(|| env::var("OPENAI_BASE_URL").ok());
-    let model = cli.model.clone().or_else(|| env::var("CANDOR_MODEL").ok());
+    let anthropic_key = anthropic_key.or_else(|| env::var("ANTHROPIC_API_KEY").ok());
+    let openai_key = openai_key.or_else(|| env::var("OPENAI_API_KEY").ok());
+    let openai_base = openai_base.or_else(|| env::var("OPENAI_BASE_URL").ok());
+    let model_name = model.or_else(|| env::var("CANDOR_MODEL").ok());
 
     let mut backend: Option<Box<dyn candor_cognitive::LlmBackend>> = None;
     let mut label = String::new();
 
     if let Some(ref key) = anthropic_key {
-        let m = model.clone().unwrap_or_else(|| "claude-sonnet-4-20250514".into());
+        let m = model_name.clone().unwrap_or_else(|| "claude-sonnet-4-20250514".into());
         backend = Some(Box::new(AnthropicBackend::new(key.clone(), &m)));
-        label = format!("anthropic/{}", m);
+        label = format!("anthropic/{m}");
     } else if let Some(ref key) = openai_key {
-        let m = model.clone().unwrap_or_else(|| "gpt-4o".into());
+        let m = model_name.clone().unwrap_or_else(|| "gpt-4o".into());
         backend = Some(Box::new(OpenAiBackend::new(key.clone(), &m, openai_base.clone())));
-        label = if let Some(ref b) = openai_base { format!("openai-compatible@{b}/{m}") } else { format!("openai/{m}") };
+        label = if let Some(ref b) = openai_base { format!("openai@{b}/{m}") } else { format!("openai/{m}") };
     } else if let Ok(base) = env::var("LM_STUDIO_URL") {
-        let m = model.unwrap_or_else(|| "local-model".into());
+        let m = model_name.clone().unwrap_or_else(|| "local-model".into());
         backend = Some(Box::new(OpenAiBackend::new("lm-studio".into(), &m, Some(base))));
-        label = format!("lm-studio/{}", m);
+        label = format!("lm-studio/{m}");
     } else if let Ok(base) = env::var("OLLAMA_URL") {
-        let m = model.unwrap_or_else(|| "llama3".into());
+        let m = model_name.unwrap_or_else(|| "llama3".into());
         backend = Some(Box::new(OpenAiBackend::new("ollama".into(), &m, Some(base))));
-        label = format!("ollama/{}", m);
+        label = format!("ollama/{m}");
     }
 
     match backend {
         Some(b) => {
-            println!("{GREEN}✓{RESET} LLM connected: {BOLD}{label}{RESET}");
-            info!(backend = %label, "LLM backend connected");
+            eprintln!("{GREEN}✓{RESET} {BOLD}LLM:{RESET} {label}");
             Ok(Arc::new(CognitiveEngine::new(Some(b), None).await?))
         }
         None => {
-            println!("{YELLOW}⚠{RESET} No LLM configured — using mock mode");
-            println!("  Set {CYAN}LM_STUDIO_URL{RESET}, {CYAN}OPENAI_API_KEY{RESET}, or {CYAN}ANTHROPIC_API_KEY{RESET}");
-            warn!("No LLM backend — using mock mode");
-            Ok(Arc::new(CognitiveEngine::new(Some(Box::new(MockBackend::new("I am a mock LLM."))), None).await?))
+            eprintln!("{YELLOW}⚠ LLM: Not configured — using Mock{RESET}");
+            eprintln!("  Set ANTHROPIC_API_KEY, OPENAI_API_KEY, LM_STUDIO_URL, or OLLAMA_URL");
+            Ok(Arc::new(CognitiveEngine::new(Some(Box::new(MockBackend::new("mock"))), None).await?))
         }
     }
 }
 
-async fn run_cli_task(task: String, orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{CYAN}▶ Task:{RESET} {task}\n");
+// ── Task runner ──
 
+async fn run_cli_task(task: String, orch: Arc<tokio::sync::Mutex<OrchestratorEngine>>) -> Result<(), Box<dyn std::error::Error>> {
     let isa = IdealStateArtifact {
         id: format!("cli-{}", uuid::Uuid::new_v4()),
         goal: task.clone(), acceptance_criteria: vec![], constraints: vec![],
@@ -270,73 +243,104 @@ async fn run_cli_task(task: String, orchestrator: Arc<tokio::sync::Mutex<Orchest
         fully_autonomous: true,
     };
 
-    let mut orch = orchestrator.lock().await;
-    let phases = ["Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn"];
-
-    match orch.run_task(&task, &isa).await {
+    let mut o = orch.lock().await;
+    match o.run_task(&task, &isa).await {
         Ok(()) => {
-            println!("\n{GREEN}{BOLD}✓ Task completed{RESET}");
-            let state_arc = orch.graph_runner.state();
+            println!("\n{GREEN}{BOLD}✓ Task completed.{RESET}");
+            let state_arc = o.graph_runner.state();
             let s = state_arc.lock().await;
-            for event in s.execution_log.iter().rev().take(10).rev() {
-                let phase_icon = phases.iter().position(|p| event.contains(p)).map(|i| i + 1).unwrap_or(0);
-                println!("  {GREEN}[{phase_icon}/7]{RESET} {event}");
+            for event in s.execution_log.iter().rev().take(5).rev() {
+                println!("  {GREEN}→{RESET} {event}");
             }
         }
         Err(e) => {
-            eprintln!("\n{RED}✗ Task failed:{RESET} {e}");
+            eprintln!("\n{RED}✗ Task failed: {e}{RESET}");
             std::process::exit(1);
         }
     }
     Ok(())
 }
 
-/// Run a voice-activated task: record → transcribe → execute.
-async fn run_voice_task(
-    voice_prompt: Option<String>,
-    orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n{}🎤 Candor Voice Task{}", BOLD, RESET);
+// ── Voice task runner ──
 
-    match stt::transcribe_mic().await {
-        Ok(transcribed) => {
-            if transcribed.trim().is_empty() {
-                eprintln!("{RED}✗ No speech detected.{RESET}");
-                return Ok(());
-            }
+async fn run_voice_task(prompt: Option<String>, _duration: u64) -> Result<(), Box<dyn std::error::Error>> {
+    let text = stt::transcribe_mic().await.map_err(|e| {
+        Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("Voice error: {e}")))
+    })?;
+    let task = if let Some(ref p) = prompt {
+        format!("{p} {text}")
+    } else {
+        text
+    };
+    println!("\n  {CYAN}You said:{RESET} {}\n", task);
+    let cognitive = build_cognitive(None, None, None, None).await?;
+    let memory = Arc::new(MemorySystem::new(384).await?);
+    let orch = Arc::new(tokio::sync::Mutex::new(
+        OrchestratorEngine::new(cognitive, memory, 100).await?,
+    ));
+    run_cli_task(task, orch).await
+}
 
-            let task = match voice_prompt {
-                Some(prefix) => format!("{} {}", prefix.trim(), transcribed.trim()),
-                None => transcribed.trim().to_string(),
-            };
+// ── Init project ──
 
-            println!("\n{CYAN}▶ Task:{RESET} {BOLD}{task}{RESET}\n");
-            run_cli_task(task, orchestrator).await
-        }
-        Err(e) => {
-            eprintln!("\n{RED}✗ Voice task failed:{RESET} {e}");
-            if matches!(&e, stt::SttError::Unavailable) {
-                println!("\n{YELLOW}💡 Tip:{RESET} Install whisper-cpp:");
-                println!("  git clone https://github.com/ggerganov/whisper.cpp.git");
-                println!("  cd whisper.cpp && make && sudo make install");
-                println!("  Or download a model: make tiny.en");
-            }
-            Ok(())
-        }
+fn init_project(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let path = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&path)?;
+    std::fs::write(path.join("candor.toml"), "[server]\nhost = \"0.0.0.0\"\nport = 31337\ncheckpoint_dir = \"/tmp/candor-checkpoints\"\nmax_iterations = 100\n\n[sandbox]\nscratchpad_dir = \"/tmp/agent_scratchpad\"\ndefault_timeout_secs = 15\ndefault_memory_mb = 256\n\n[inference]\n# anthropic_api_key = \"sk-ant-...\"\n# openai_api_key = \"sk-...\"\nembedding_model = \"all-MiniLM-L6-v2\"\nembedding_dim = 384\n\n[memory]\nbackend = \"mem\"\ncompaction_token_limit = 135000\n")?;
+    std::fs::write(path.join(".gitignore"), "/target/\n.env\n/tmp/\n")?;
+    println!("{GREEN}✓{RESET} Project initialized at {BOLD}{}{RESET}", path.display());
+    println!("  candor task \"build something\"");
+    Ok(())
+}
+
+// ── Health check ──
+
+async fn run_health_check(orch: Arc<tokio::sync::Mutex<OrchestratorEngine>>) {
+    let o = orch.lock().await;
+    let frontier = o.cognitive.is_frontier_healthy();
+    let local = o.cognitive.is_local_healthy();
+
+    println!();
+    println!("{BOLD}  Candor AI — Health Check{RESET}\n");
+    println!("  {BOLD}LLM:{RESET}      {}", if frontier { format!("{GREEN}Connected{RESET}") } else { format!("{YELLOW}Not configured{RESET}") });
+    println!("  {BOLD}Local:{RESET}    {}", if local { format!("{GREEN}Connected{RESET}") } else { format!("{YELLOW}Not configured{RESET}") });
+    println!("  {BOLD}Sandbox:{RESET}  {}", if o.sandbox.native_engine().is_bwrap_available() { "Bubblewrap" } else { "Direct" });
+    println!("  {BOLD}Sentinel:{RESET} {}", if o.sentinel.is_active() { format!("{GREEN}Active{RESET}") } else { format!("{YELLOW}Inactive{RESET}") });
+    println!("  {BOLD}Tools:{RESET}    {} registered", o.tools.tool_count());
+    println!();
+    println!("{GREEN}  All systems operational.{RESET}");
+}
+
+// ── Doctor diagnostics ──
+
+async fn run_doctor() {
+    println!("\n{BOLD}Candor AI — Doctor{RESET}\n");
+
+    let checks = [
+        ("cargo", check_cmd("cargo")),
+        ("git", check_cmd("git")),
+        ("bubblewrap", check_cmd("bwrap")),
+        ("whisper", check_cmd("whisper-cpp") || check_cmd("whisper-cli") || check_cmd("whisper")),
+        ("surrealDB", true), // embedded, always available
+    ];
+    let all_ok = checks.iter().all(|(_, ok)| *ok);
+    for (name, ok) in &checks {
+        println!("  {} {name}", if *ok { format!("{GREEN}✓{RESET}") } else { format!("{YELLOW}○{RESET}") });
+    }
+    println!();
+    if all_ok {
+        println!("{GREEN}✓ All checks passed.{RESET}");
+    } else {
+        println!("{YELLOW}○ Some optional dependencies missing. Candor will still work.{RESET}");
     }
 }
 
-async fn run_health_check(orchestrator: Arc<tokio::sync::Mutex<OrchestratorEngine>>) {
-    let orch = orchestrator.lock().await;
-    let frontier = orch.cognitive.is_frontier_healthy();
-    let local = orch.cognitive.is_local_healthy();
-
-    println!("{BOLD}Session:{RESET} {}", orch.session_id);
-    println!("{BOLD}Frontier LLM:{RESET} {}", if frontier { format!("{GREEN}connected{RESET}") } else { format!("{YELLOW}not configured{RESET}") });
-    println!("{BOLD}Local LLM:{RESET}    {}", if local { format!("{GREEN}connected{RESET}") } else { format!("{YELLOW}not configured{RESET}") });
-    println!("{BOLD}Sandbox:{RESET}      {}", if orch.sandbox.native_engine().is_bwrap_available() { "bubblewrap" } else { "direct" });
-    println!("{BOLD}Sentinel:{RESET}     {}", if orch.sentinel.is_active() { format!("{GREEN}active{RESET}") } else { format!("{YELLOW}inactive{RESET}") });
-    println!("{BOLD}Tools:{RESET}        {} registered", orch.tools.tool_count());
-    println!("{BOLD}Memory:{RESET}       {} dimensions", orch.memory.embedding_dim());
-    println!("\n{GREEN}All subsystems operational.{RESET}");
+fn check_cmd(cmd: &str) -> bool {
+    std::process::Command::new(cmd)
+        .arg("--version")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
