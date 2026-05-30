@@ -15,6 +15,7 @@ candor-cognitive = { path = "../../crates/candor-cognitive" }
 candor-memory = { path = "../../crates/candor-memory" }
 candor-sentinel = { path = "../../crates/candor-sentinel" }
 candor-orchestrator = { path = "../../crates/candor-orchestrator" }
+candor-telemetry = { path = "../../crates/candor-telemetry" }
 tokio = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }

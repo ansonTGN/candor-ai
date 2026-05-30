@@ -25,6 +25,7 @@ use candor_tools::{
     GitBranchTool, GitCommitTool, GitPushTool, GitStatusTool,
 };
 
+use super::markdown_router::MarkdownContext;
 use super::phases::Phase;
 
 const COMPACTION_CHARS: usize = 8192;
@@ -37,6 +38,7 @@ struct PhaseContext {
     memory: Arc<MemorySystem>,
     tools: Arc<ToolRegistry>,
     workdir: String,
+    markdown_ctx: Option<MarkdownContext>,
 }
 
 /// The Candor Agent — full LLM-driven SWE agent.
@@ -48,6 +50,7 @@ pub struct OrchestratorEngine {
     pub sentinel: candor_sentinel::interceptor::SentinelInterceptor,
     pub session_id: String,
     pub tools: Arc<ToolRegistry>,
+    markdown_ctx: Option<MarkdownContext>,
 }
 
 impl OrchestratorEngine {
@@ -90,13 +93,16 @@ impl OrchestratorEngine {
         Ok(Self {
             graph_runner, sandbox, cognitive, memory,
             sentinel, session_id, tools: tools_arc,
+            markdown_ctx: None,
         })
     }
 
     pub async fn run_task(
         &mut self, task: &str, isa: &IdealStateArtifact,
+        markdown_ctx: Option<MarkdownContext>,
     ) -> Result<(), CoreError> {
-        info!(task = %task, "Starting agent task");
+        info!(task = %task, has_markdown_ctx = markdown_ctx.is_some(), "Starting agent task");
+        self.markdown_ctx = markdown_ctx;
         {
             let state_arc = self.graph_runner.state();
             let mut s = state_arc.lock().await;
@@ -197,6 +203,7 @@ impl OrchestratorEngine {
                 memory: Arc::clone(&self.memory),
                 tools: Arc::clone(&self.tools),
                 workdir: wd.clone(),
+                markdown_ctx: self.markdown_ctx.clone(),
             };
             idxs.push(self.graph_runner.insert_node(phase.name(), Box::new(ctx)));
         }
@@ -290,6 +297,25 @@ impl GraphNode for PhaseContext {
 }
 
 impl PhaseContext {
+    /// Build a prompt with optional markdown context prepended.
+    ///
+    /// If a MarkdownContext is available, injects the formatted system prompt
+    /// (doctrine, goal, criteria, constraints) as a preamble to the agent's
+    /// reasoning. This ensures the agent operates within the defined
+    /// constraints and targets the specified acceptance criteria.
+    fn build_prompt_with_context(&self, base_prompt: &str) -> String {
+        if let Some(ref ctx) = self.markdown_ctx {
+            let preamble = ctx.format_system_prompt();
+            if !preamble.is_empty() {
+                return format!(
+                    "{}\n\n---\n\n{}",
+                    preamble, base_prompt,
+                );
+            }
+        }
+        base_prompt.to_string()
+    }
+
     async fn observe(&self, ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let mut s = state.lock().await;
         s.log_event("Observe: scanning project");
@@ -319,9 +345,10 @@ impl PhaseContext {
             s.message_history.iter().rev().take(15).cloned().collect::<Vec<_>>().join("\n")
         };
 
-        let prompt = format!(
+        let base = format!(
             "You are a software engineering agent. Analyze the project context and identify what needs to be done.\n\nContext:\n{context}\n\nOutput a brief, specific analysis.",
         );
+        let prompt = self.build_prompt_with_context(&base);
 
         match self.cognitive.generate_fast(&prompt).await {
             Ok(analysis) => {
@@ -344,9 +371,10 @@ impl PhaseContext {
         };
 
         let tools_desc = self.tools.descriptions_for_llm();
-        let prompt = format!(
+        let base = format!(
             "You are a software engineering agent. Generate a numbered plan.\n\nAvailable tools:\n{tools_desc}\n\nContext:\n{context}\n\nOutput numbered, actionable steps.",
         );
+        let prompt = self.build_prompt_with_context(&base);
 
         match self.cognitive.generate_fast(&prompt).await {
             Ok(plan) => {
@@ -369,9 +397,10 @@ impl PhaseContext {
             s.message_history.iter().rev().take(25).cloned().collect::<Vec<_>>().join("\n")
         };
 
-        let prompt = format!(
+        let base = format!(
             "You are a software engineering agent. Write code changes.\n\nContext:\n{context}\n\nFormat each file as:\n### FILE: path\n```\ncode\n```\n\nWrite COMPLETE, compilable code files.",
         );
+        let prompt = self.build_prompt_with_context(&base);
 
         match self.cognitive.generate_fast(&prompt).await {
             Ok(code) => {
@@ -608,7 +637,7 @@ mod tests {
             phase_requirements: Default::default(),
             fully_autonomous: true,
         };
-        assert!(agent.run_task("list files", &isa).await.is_ok());
+        assert!(agent.run_task("list files", &isa, None).await.is_ok());
         assert_eq!(agent.graph_runner.node_count(), 7);
     }
 }

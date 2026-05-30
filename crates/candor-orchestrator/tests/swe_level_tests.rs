@@ -219,7 +219,7 @@ async fn integration_full_agent_pipeline_mock() {
         fully_autonomous: true,
     };
 
-    let result = agent.run_task("integration: scan project and list files", &isa).await;
+    let result = agent.run_task("integration: scan project and list files", &isa, None).await;
     assert!(result.is_ok(), "full agent pipeline should complete");
 
     // Verify all 7 phases ran

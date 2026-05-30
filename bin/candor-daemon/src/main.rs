@@ -16,7 +16,7 @@ use std::sync::Arc;
 use axum::Router;
 use clap::{Parser, Subcommand};
 use tower_http::cors::CorsLayer;
-use tracing::{info, warn};
+use tracing::info;
 
 use candor_cognitive::{
     AnthropicBackend, CognitiveEngine, MockBackend, OpenAiBackend,
@@ -33,6 +33,12 @@ mod stt;
 #[derive(Parser, Debug)]
 #[command(name = "candor", version, about = "Lawful Good Rust Agentic Operating System", long_about = None)]
 struct Cli {
+    /// OpenTelemetry OTLP gRPC endpoint for trace export
+    /// (e.g. http://localhost:4317).  When omitted, only local
+    /// fmt logging is used.
+    #[arg(long, global = true, env = "OTEL_EXPORTER_OTLP_ENDPOINT")]
+    otlp_endpoint: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -110,9 +116,11 @@ pub struct AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .init();
+    // Initialise tracing: with OTLP if --otlp-endpoint is set, otherwise fmt.
+    let _telemetry = candor_telemetry::init_telemetry(
+        "candor-daemon",
+        cli.otlp_endpoint.as_deref(),
+    );
 
     match cli.command {
         Commands::Task { description, model, openai_base, openai_key, anthropic_key, max_iterations, embedding_dim } => {
@@ -244,7 +252,7 @@ async fn run_cli_task(task: String, orch: Arc<tokio::sync::Mutex<OrchestratorEng
     };
 
     let mut o = orch.lock().await;
-    match o.run_task(&task, &isa).await {
+    match o.run_task(&task, &isa, None).await {
         Ok(()) => {
             println!("\n{GREEN}{BOLD}✓ Task completed.{RESET}");
             let state_arc = o.graph_runner.state();

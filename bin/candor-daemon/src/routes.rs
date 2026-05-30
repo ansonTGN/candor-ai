@@ -146,7 +146,7 @@ pub async fn submit_task(
         fully_autonomous: true,
     };
 
-    match orchestrator.run_task(&request.description, &isa).await {
+    match orchestrator.run_task(&request.description, &isa, None).await {
         Ok(()) => {
             state
                 .session_counter

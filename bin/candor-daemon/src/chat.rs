@@ -265,7 +265,7 @@ async fn run_task_with_streaming(
 
     let agent_handle = tokio::spawn(async move {
         let mut orch = orch_clone.lock().await;
-        orch.run_task(&task_clone, &isa_clone).await
+        orch.run_task(&task_clone, &isa_clone, None).await
     });
 
     // ── Print task header ──
