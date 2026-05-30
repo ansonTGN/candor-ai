@@ -177,7 +177,92 @@ impl MemorySystem {
         Ok(())
     }
 
+    pub async fn get_all_execution_logs(&self) -> Result<Vec<ExecutionLogEntry>, CoreError> {
+        self.ensure_schema().await?;
+
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        struct RawLog {
+            session_id: String,
+            phase: String,
+            action: String,
+            result: String,
+            timestamp: surrealdb::sql::Datetime,
+        }
+
+        let rows: Vec<RawLog> = self
+            .db
+            .query("SELECT session_id, phase, action, result, timestamp FROM execution_log ORDER BY timestamp ASC")
+            .await
+            .map_err(|e| CoreError::Internal(format!("Query execution logs failed: {e}")))?
+            .take(0)
+            .map_err(|e| CoreError::Internal(format!("Deserialize execution logs failed: {e}")))?;
+
+        Ok(rows.into_iter().map(|r| ExecutionLogEntry {
+            session_id: r.session_id,
+            phase: r.phase,
+            action: r.action,
+            result: r.result,
+            timestamp: r.timestamp,
+        }).collect())
+    }
+
+    /// Delete all execution_log entries after summarization.
+    pub async fn delete_all_execution_logs(&self) -> Result<(), CoreError> {
+        self.ensure_schema().await?;
+
+        self.db
+            .query("DELETE FROM execution_log")
+            .await
+            .map_err(|e| CoreError::Internal(format!("Delete execution logs failed: {e}")))?;
+
+        Ok(())
+    }
+
+    /// Query execution logs filtered by session_id.
+    pub async fn get_execution_logs_by_session(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<ExecutionLogEntry>, CoreError> {
+        self.ensure_schema().await?;
+
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        struct RawLog {
+            session_id: String,
+            phase: String,
+            action: String,
+            result: String,
+            timestamp: surrealdb::sql::Datetime,
+        }
+
+        let rows: Vec<RawLog> = self
+            .db
+            .query("SELECT session_id, phase, action, result, timestamp FROM execution_log WHERE session_id = $sid ORDER BY timestamp ASC")
+            .bind(("sid", session_id.to_string()))
+            .await
+            .map_err(|e| CoreError::Internal(format!("Query session logs failed: {e}")))?
+            .take(0)
+            .map_err(|e| CoreError::Internal(format!("Deserialize session logs failed: {e}")))?;
+
+        Ok(rows.into_iter().map(|r| ExecutionLogEntry {
+            session_id: r.session_id,
+            phase: r.phase,
+            action: r.action,
+            result: r.result,
+            timestamp: r.timestamp,
+        }).collect())
+    }
+
     pub fn embedding_dim(&self) -> usize {
         self.embedding_dim
     }
+}
+
+/// A single execution log entry returned by query methods.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExecutionLogEntry {
+    pub session_id: String,
+    pub phase: String,
+    pub action: String,
+    pub result: String,
+    pub timestamp: surrealdb::sql::Datetime,
 }

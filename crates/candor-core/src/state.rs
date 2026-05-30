@@ -6,6 +6,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::ideal::IdealStateArtifact;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AgentState {
     /// The full message/conversation history as individual entries.
@@ -40,6 +42,10 @@ pub struct AgentState {
 
     /// The cumulative token count estimate for this session.
     pub estimated_token_count: u64,
+
+    /// The Ideal State Artifact (ISA) defining success criteria.
+    /// Set at task start so all phases can reference it.
+    pub ideal_state: Option<IdealStateArtifact>,
 }
 
 impl AgentState {

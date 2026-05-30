@@ -203,8 +203,16 @@ async fn integration_full_agent_pipeline_mock() {
 
     let isa = IdealStateArtifact {
         id: "integration-test".into(),
-        goal: "test full pipeline".into(),
-        acceptance_criteria: vec![],
+        goal: "scan project and list files".into(),
+        acceptance_criteria: vec![
+            AcceptanceCriterion {
+                id: "list-output".into(),
+                description: "list_dir produces output".into(),
+                verification_method: VerificationMethod::ShellCommand {
+                    command: "ls".into(),
+                },
+            },
+        ],
         constraints: vec![],
         expected_artifacts: vec![],
         phase_requirements: Default::default(),

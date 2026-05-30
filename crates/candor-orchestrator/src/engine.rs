@@ -10,6 +10,7 @@ use uuid::Uuid;
 use candor_cognitive::CognitiveEngine;
 use candor_core::error::CoreError;
 use candor_core::ideal::IdealStateArtifact;
+use candor_core::ideal::VerificationMethod;
 use candor_core::state::AgentState;
 use candor_graph::hooks::LifecycleHooks;
 use candor_graph::node::AgentNode as GraphNode;
@@ -101,6 +102,7 @@ impl OrchestratorEngine {
             let mut s = state_arc.lock().await;
             s.active_task = task.to_string();
             s.project_id = Some(isa.id.clone());
+            s.ideal_state = Some(isa.clone());
             s.log_event(&format!("Task: {task}"));
         }
 
@@ -204,12 +206,52 @@ impl OrchestratorEngine {
         Ok(idxs[0])
     }
 
-    async fn maybe_compact(&self) {
+    async fn maybe_compact(&self) -> &Self {
         let state_arc = self.graph_runner.state();
         if state_arc.lock().await.is_over_token_limit() {
             info!("Compacting context");
             state_arc.lock().await.compact_context(COMPACTION_CHARS);
         }
+        self
+    }
+
+    /// Load an Ideal State Artifact from a SYSTEM.md file or an explicit path.
+    ///
+    /// 1. If `path` is `Some`, loads from that exact file.
+    /// 2. If `path` is `None`, tries `SYSTEM.md` in the current directory.
+    ///
+    /// Returns the parsed `IdealStateArtifact` or a `CoreError` if the file
+    /// cannot be found or parsed.
+    pub async fn load_isa(path: Option<&std::path::Path>) -> Result<IdealStateArtifact, CoreError> {
+        let resolved = match path {
+            Some(p) => p.to_path_buf(),
+            None => {
+                let cwd = std::env::current_dir()
+                    .map_err(|e| CoreError::Io(e.to_string()))?;
+                cwd.join("SYSTEM.md")
+            }
+        };
+
+        if !resolved.exists() {
+            return Err(CoreError::Config(format!(
+                "ISA file not found at '{}'. Create a SYSTEM.md with acceptance criteria.",
+                resolved.display(),
+            )));
+        }
+
+        let markdown = tokio::fs::read_to_string(&resolved)
+            .await
+            .map_err(|e| CoreError::Io(e.to_string()))?;
+
+        let id = resolved
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("SYSTEM")
+            .to_string();
+
+        let isa = crate::isa_parser::parse_isa_from_markdown(&id, &markdown)?;
+        info!(path = %resolved.display(), id = %isa.id, criteria = isa.acceptance_criteria.len(), "ISA loaded");
+        Ok(isa)
     }
 }
 
@@ -347,6 +389,23 @@ impl PhaseContext {
     }
 
     async fn exec(&self, ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
+        // ── ISA validation gate (Build→Execute transition) ──
+        // The Ideal State Artifact must define acceptance criteria before
+        // execution can proceed. This enforces the design contract that
+        // every task has measurable success criteria.
+        let isa = {
+            let s = state.lock().await;
+            s.ideal_state.clone()
+        };
+
+        if let Some(ref isa) = isa {
+            Self::validate_isa_for_execution(isa, &state).await?;
+        } else {
+            return Err(CoreError::IdealStateNotSatisfied(
+                "No Ideal State Artifact set — run_task was called without an ISA".into(),
+            ));
+        }
+
         let mut s = state.lock().await;
         s.log_event("Execute: running cargo check");
 
@@ -359,6 +418,81 @@ impl PhaseContext {
                 Err(e) => s.log_event(&format!("Execute: failed ({e})")),
             }
         }
+        Ok(())
+    }
+
+    /// Validate the Ideal State Artifact before executing.
+    ///
+    /// Checks:
+    /// 1. At least one acceptance criterion is defined
+    /// 2. Each criterion has a non-empty, well-formed verification method
+    /// 3. The active task aligns with the ISA's goal
+    async fn validate_isa_for_execution(
+        isa: &IdealStateArtifact,
+        state: &Arc<Mutex<AgentState>>,
+    ) -> Result<(), CoreError> {
+        let active_task = state.lock().await.active_task.clone();
+
+        // Check 1: at least one acceptance criterion
+        if isa.acceptance_criteria.is_empty() {
+            return Err(CoreError::IdealStateNotSatisfied(
+                format!(
+                    "ISA '{}' has no acceptance criteria defined. \
+                     Goal: '{}'. Task: '{}'. At least one acceptance criterion \
+                     is required before the Build→Execute transition.",
+                    isa.id, isa.goal, active_task,
+                ),
+            ));
+        }
+
+        // Check 2: each criterion must have a valid verification method
+        let mut invalid_criteria = Vec::new();
+        for criterion in &isa.acceptance_criteria {
+            let is_valid = match &criterion.verification_method {
+                VerificationMethod::ShellCommand { command }
+                | VerificationMethod::LintCheck { command } => !command.trim().is_empty(),
+                VerificationMethod::TestCase { test_name } => !test_name.trim().is_empty(),
+                VerificationMethod::FileExists { path } => !path.trim().is_empty(),
+                VerificationMethod::FileMatches { path, pattern } => {
+                    !path.trim().is_empty() && !pattern.trim().is_empty()
+                }
+                VerificationMethod::HumanConfirmation { prompt } => !prompt.trim().is_empty(),
+            };
+            if !is_valid {
+                invalid_criteria.push(criterion.id.clone());
+            }
+        }
+
+        if !invalid_criteria.is_empty() {
+            return Err(CoreError::IdealStateNotSatisfied(
+                format!(
+                    "ISA '{}' has criteria with invalid/empty verification methods: [{}]. \
+                     Each acceptance criterion must specify a verification method with \
+                     a non-empty value.",
+                    isa.id,
+                    invalid_criteria.join(", "),
+                ),
+            ));
+        }
+
+        // Check 3: active task should reference the ISA's goal
+        let goal_lower = isa.goal.to_lowercase();
+        let task_lower = active_task.to_lowercase();
+        if !task_lower.contains(&goal_lower) && !goal_lower.contains(&task_lower) {
+            return Err(CoreError::IdealStateNotSatisfied(
+                format!(
+                    "Active task does not align with ISA goal. \
+                     Task: '{}'. ISA Goal: '{}'.",
+                    active_task, isa.goal,
+                ),
+            ));
+        }
+
+        info!(
+            isa_id = %isa.id,
+            criteria = isa.acceptance_criteria.len(),
+            "ISA validation passed — proceeding to Execute phase"
+        );
         Ok(())
     }
 
@@ -441,7 +575,8 @@ async fn flush_file(path: &Option<String>, code: &str, workdir: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use candor_core::ideal::AcceptanceCriterion;
+    use candor_cognitive::CognitiveEngine;
     #[tokio::test]
     async fn test_agent_init() {
         let c = Arc::new(CognitiveEngine::new(None, None).await.unwrap());
@@ -459,9 +594,18 @@ mod tests {
         agent.graph_runner = GraphRunner::new(100).with_hooks(hooks);
 
         let isa = IdealStateArtifact {
-            id: "test".into(), goal: "test".into(),
-            acceptance_criteria: vec![], constraints: vec![],
-            expected_artifacts: vec![], phase_requirements: Default::default(),
+            id: "test".into(), goal: "list files".into(),
+            acceptance_criteria: vec![
+                AcceptanceCriterion {
+                    id: "list-output".into(),
+                    description: "list_dir produces output".into(),
+                    verification_method: VerificationMethod::ShellCommand {
+                        command: "ls".into(),
+                    },
+                },
+            ],
+            constraints: vec![], expected_artifacts: vec![],
+            phase_requirements: Default::default(),
             fully_autonomous: true,
         };
         assert!(agent.run_task("list files", &isa).await.is_ok());
