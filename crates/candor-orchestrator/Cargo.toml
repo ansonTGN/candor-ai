@@ -21,3 +21,6 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
 petgraph = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

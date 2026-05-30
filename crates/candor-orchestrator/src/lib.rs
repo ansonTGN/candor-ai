@@ -13,5 +13,6 @@ pub mod phases;
 pub mod engine;
 pub mod isa_parser;
 pub mod skills;
+pub mod trajectory;
 
 pub use engine::OrchestratorEngine;
