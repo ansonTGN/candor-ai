@@ -31,11 +31,17 @@ cargo run -- --port 31337
 
 ```
 candor-ai/
-├── bin/candor-daemon/       # axum server binary
-│   └── src/
-│       ├── main.rs          # Entry point, CLI, router
-│       ├── config.rs        # TOML config via Figment
-│       └── routes.rs        # REST API handlers
+├── bin/
+│   └── candor-daemon/       # CLI + axum server + PDA + voice
+│       └── src/
+│           ├── main.rs      # Entry point, CLI, router
+│           ├── chat.rs      # Interactive chat mode
+│           ├── stt.rs       # Speech-to-text (whisper-cpp)
+│           ├── tts.rs       # Text-to-speech (piper/espeak)
+│           ├── pda.rs       # Personal Digital Assistant
+│           ├── agents.rs    # Morning digest, monitor agents
+│           ├── routes.rs    # REST API handlers
+│           └── util.rs      # Shared utilities
 ├── crates/
 │   ├── candor-core/         # Shared types
 │   ├── candor-graph/        # PetGraph orchestration
@@ -43,7 +49,10 @@ candor-ai/
 │   ├── candor-cognitive/    # LLM inference + embeddings
 │   ├── candor-memory/       # SurrealDB storage
 │   ├── candor-sentinel/     # No-slop guardrails
-│   └── candor-orchestrator/ # 7-phase state machine
+│   ├── candor-orchestrator/ # 7-phase state machine
+│   ├── candor-tools/        # Tool execution framework
+│   ├── candor-mcp/          # MCP protocol integration
+│   └── candor-telemetry/    # Telemetry and monitoring
 ├── candor.toml              # Default config
 ├── candor-ai-design.md      # Full architecture design doc
 ├── Cargo.toml               # Workspace manifest

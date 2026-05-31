@@ -3,6 +3,7 @@
 /// Binds all subsystems: tools, LLM, sandbox, sentinel, memory, git.
 /// Each phase does real work using the cognitive engine and tool registry.
 use std::sync::Arc;
+use std::path::PathBuf;
 use tokio::sync::Mutex;
 use tracing::{error, info};
 use uuid::Uuid;
@@ -110,6 +111,24 @@ impl OrchestratorEngine {
             s.project_id = Some(isa.id.clone());
             s.ideal_state = Some(isa.clone());
             s.log_event(&format!("Task: {task}"));
+
+            // Inject PDA identity into the agent's context if available.
+            if let Ok(identity) = std::fs::read_to_string(
+                dirs_or_default().join("IDENTITY.md")
+            ) {
+                s.append_message(&format!(
+                    "## User Identity\n\n{}",
+                    identity
+                ));
+            }
+            if let Ok(da_identity) = std::fs::read_to_string(
+                dirs_or_default().join("DA_IDENTITY.md")
+            ) {
+                s.append_message(&format!(
+                    "## Assistant Identity\n\n{}",
+                    da_identity
+                ));
+            }
         }
 
         let start = self.build_graph()?;
@@ -597,6 +616,15 @@ async fn flush_file(path: &Option<String>, code: &str, workdir: &str) {
             let _ = tokio::fs::create_dir_all(full.parent().unwrap()).await;
             let _ = tokio::fs::write(&full, code).await;
         }
+}
+
+/// Resolve the PDA home directory (~/.candor) or fall back to /tmp.
+fn dirs_or_default() -> PathBuf {
+    if let Ok(home) = std::env::var("HOME") {
+        PathBuf::from(home).join(".candor")
+    } else {
+        PathBuf::from("/tmp/candor")
+    }
 }
 
 // ── Tests ──

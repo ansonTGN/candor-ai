@@ -177,6 +177,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Commands::Task { description, model, openai_base, openai_key, anthropic_key, max_iterations, embedding_dim } => {
             println!("{CYAN}{BOLD}   Candor AI v{} — Task Mode{RESET}\n", env!("CARGO_PKG_VERSION"));
+            // Auto-initialize PDA home if not set up.
+            let _ = pda::init().await;
             let cognitive = build_cognitive(model, openai_key, anthropic_key, openai_base).await?;
             let memory = Arc::new(MemorySystem::new(embedding_dim).await?);
             let orch = Arc::new(tokio::sync::Mutex::new(
@@ -186,6 +188,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Chat { model, openai_base, openai_key, anthropic_key } => {
             println!("{CYAN}{BOLD}   Candor AI v{} — Chat Mode{RESET}\n", env!("CARGO_PKG_VERSION"));
+            let _ = pda::init().await;
             let cognitive = build_cognitive(model, openai_key, anthropic_key, openai_base).await?;
             let memory = Arc::new(MemorySystem::new(384).await?);
             let orch = Arc::new(tokio::sync::Mutex::new(
