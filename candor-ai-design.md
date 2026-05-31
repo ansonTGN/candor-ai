@@ -134,7 +134,7 @@ impl GraphRunner {
 
             info!("Executing node: {:?}", current_node);
             let node = &self.graph[current_node];
-            
+
             match node.execute(Arc::clone(&self.state)).await {
                 Ok(_) => info!("Node executed successfully."),
                 Err(e) => {
@@ -174,7 +174,7 @@ Rust
 let required_data = {
     let state = state_lock.lock().await;
     state.shared_variables.get("context_key").cloned()
-}; 
+};
 // The lock is definitively dropped here.
 let result = perform_async_network_io(required_data).await;
 
@@ -237,7 +237,7 @@ impl ToolSandbox {
         language: Language,
     ) -> Result<String, SandboxError> {
         info!("Executing tool in abstracted sandbox boundary.");
-        
+
         let request = ExecRequest {
             language,
             code: code.to_string(),
@@ -386,7 +386,7 @@ impl MemorySystem {
             DEFINE FIELD textual_content ON memory_block TYPE string;
             DEFINE FIELD semantic_embedding ON memory_block TYPE array<float>;
             DEFINE FIELD timestamp ON memory_block TYPE datetime;
-            
+
             -- Utilize an HNSW index optimized for the 384 dimensions of the MiniLM model.
             DEFINE INDEX memory_embed_idx ON memory_block FIELDS semantic_embedding HNSW DIMENSION 384 DIST COSINE;
         ";
@@ -418,10 +418,10 @@ impl MemorySystem {
     pub async fn retrieve_context(&self, project_id: &str, query_embedding: Vec<f32>, top_k: u32) -> Result<Vec<String>> {
         // Query utilizing vector distance, strictly scoped by project ID.
         let sql_query = "
-            SELECT textual_content, vector::distance::cosine(semantic_embedding, $query_vector) AS distance 
-            FROM memory_block 
+            SELECT textual_content, vector::distance::cosine(semantic_embedding, $query_vector) AS distance
+            FROM memory_block
             WHERE project_id = $pid
-            ORDER BY distance ASC 
+            ORDER BY distance ASC
             LIMIT $limit;
         ";
 
@@ -432,7 +432,7 @@ impl MemorySystem {
     .await?;
 
         let matching_blocks: Vec<MemoryBlock> = result.take(0)?;
-        
+
         let contents = matching_blocks.into_iter().map(|block| block.textual_content).collect();
         Ok(contents)
     }
@@ -520,7 +520,7 @@ pub enum SentinelError {
 
 pub struct SentinelInterceptor {
     // Highly distilled local model reference (routed locally via adk-mistralrs)
-    local_classifier: Arc<CognitiveEngine>, 
+    local_classifier: Arc<CognitiveEngine>,
 }
 
 impl SentinelInterceptor {
@@ -533,11 +533,11 @@ impl SentinelInterceptor {
         if!valid_scopes.iter().any(|scope| payload.contains(scope)) {
             return Err(SentinelError::PolicyViolation("Out-of-scope tool invocation blocked.".into()));
         }
-        
+
         if payload.contains("git push --force") || payload.contains("git push -f") {
             return Err(SentinelError::PolicyViolation("Git-Discipline: Force pushing to remote is strictly prohibited.".into()));
         }
-        
+
         Ok(())
     }
 
@@ -545,7 +545,7 @@ impl SentinelInterceptor {
     #[instrument(skip(self, code_payload))]
     pub async fn evaluate_payload(&self, code_payload: String, valid_scopes: Vec<String>) -> Result<(), SentinelError> {
         info!("Sentinel initiating hybrid audit on proposed payload.");
-        
+
         // 1. Run deterministic rule checks first to fail fast.
         self.enforce_deterministic_rules(&code_payload, &valid_scopes)?;
 
@@ -553,7 +553,7 @@ impl SentinelInterceptor {
         let classifier = Arc::clone(&self.local_classifier);
         let evaluation = tokio::task::spawn(async move {
             let prompt = format!("Evaluate the following code strictly. Reject if it contains vague TODOs, dead code, narration comments, or single-use helper abstractions. Output only PASS or FAIL. Payload: {}", code_payload);
-            
+
             // Explicitly force routing to the fast local pipeline.
             classifier.generate_fast(&prompt).await.unwrap_or_else(|_| "FAIL".to_string())
         }).await.map_err(|_| SentinelError::SemanticRejection("Tokio task panicked".into()))?;

@@ -1,5 +1,5 @@
 # Candor AI Configuration
-# 
+#
 # From the design doc: "Defaults are Decisions. The Wasmtime sandbox
 # enforces a deny-by-default posture."
 

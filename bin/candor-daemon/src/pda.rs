@@ -315,7 +315,7 @@ pub async fn start_work(slug: &str, goal: &str) -> Result<(), PdaError> {
 {goal}
 
 ## Acceptance Criteria
-- [ ] 
+- [ ]
 
 ## Decisions
 

@@ -34,7 +34,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 /// Initialise the tracing subscriber and optionally an OTLP gRPC exporter.
 ///
 /// `service_name`    – value for the `service.name` resource attribute.
-/// `otlp_endpoint`   – full gRPC URL (e.g. `http://localhost:4317`).  
+/// `otlp_endpoint`   – full gRPC URL (e.g. `http://localhost:4317`).
 ///                     Pass `None` or `Some("")` to skip OTLP and use
 ///                     a plain `fmt` subscriber instead.
 ///
