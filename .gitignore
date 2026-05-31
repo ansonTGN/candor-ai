@@ -29,3 +29,9 @@ Thumbs.db
 *.key
 credentials.json
 auth.json
+
+# Dependencies
+node_modules/
+
+# Build output
+desktop/dist/
