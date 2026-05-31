@@ -344,6 +344,40 @@ pub async fn list_work() -> Result<Vec<String>, PdaError> {
     Ok(slugs)
 }
 
+/// Count markdown files in a memory directory (LEARNING or KNOWLEDGE).
+async fn count_memory_files(dir: &std::path::Path) -> Result<usize, PdaError> {
+    if !dir.exists() {
+        return Ok(0);
+    }
+    let mut count = 0;
+    let mut entries = tokio::fs::read_dir(dir).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        if entry.file_type().await?.is_file() {
+            count += 1;
+        }
+    }
+    Ok(count)
+}
+
+/// Get the number of uncommitted changes in the PDA git repo.
+async fn git_uncommitted_count(home: &std::path::Path) -> usize {
+    use std::process::Stdio;
+    let out = tokio::process::Command::new("git")
+        .args(["status", "--short"])
+        .current_dir(home)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .output()
+        .await;
+    match out {
+        Ok(o) => {
+            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if s.is_empty() { 0 } else { s.lines().count() }
+        }
+        Err(_) => 0,
+    }
+}
+
 /// Check PDA status.
 pub async fn status() -> Result<String, PdaError> {
     let home = pda_home();
@@ -359,43 +393,17 @@ pub async fn status() -> Result<String, PdaError> {
         report.push_str(&format!("IDENTITY.md: {}\n", if identity { "✅" } else { "❌" }));
         report.push_str(&format!("DA_IDENTITY.md: {}\n", if da { "✅" } else { "❌" }));
 
-        // Count work sessions.
         let work_count = list_work().await?.len();
         report.push_str(&format!("Work sessions: {work_count}\n"));
 
-        // Count learning entries.
-        let learning_dir = home.join("MEMORY").join("LEARNING");
-        let learning_count = if learning_dir.exists() {
-            let mut count = 0;
-            let mut entries = tokio::fs::read_dir(&learning_dir).await?;
-            while let Some(entry) = entries.next_entry().await? {
-                if entry.file_type().await?.is_file() {
-                    count += 1;
-                }
-            }
-            count
-        } else {
-            0
-        };
+        let learning_count = count_memory_files(&home.join("MEMORY").join("LEARNING")).await?;
         report.push_str(&format!("Learning entries: {learning_count}\n"));
 
-        // Git status.
-        use std::process::Stdio;
-        let git_status = tokio::process::Command::new("git")
-            .args(["status", "--short"])
-            .current_dir(&home)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .output()
-            .await;
-        if let Ok(out) = git_status {
-            let untracked = String::from_utf8_lossy(&out.stdout).trim().to_string();
-            if untracked.is_empty() {
-                report.push_str("Memory: ✅ clean\n");
-            } else {
-                let lines: Vec<&str> = untracked.lines().collect();
-                report.push_str(&format!("Memory: {} uncommitted changes\n", lines.len()));
-            }
+        let dirty = git_uncommitted_count(&home).await;
+        if dirty == 0 {
+            report.push_str("Memory: ✅ clean\n");
+        } else {
+            report.push_str(&format!("Memory: {dirty} uncommitted changes\n"));
         }
     }
 
