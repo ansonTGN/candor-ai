@@ -2,6 +2,9 @@
 name = "candor-core"
 version.workspace = true
 edition.workspace = true
+description = "Shared types: AgentState, IdealStateArtifact, AgentAction, CoreError"
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 tokio = { workspace = true }

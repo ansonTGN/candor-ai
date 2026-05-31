@@ -2,6 +2,9 @@
 name = "candor-sentinel"
 version.workspace = true
 edition.workspace = true
+description = "Deterministic guardrails: 6 rules + 10 doctrine principles for agent safety"
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

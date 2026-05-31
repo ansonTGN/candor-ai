@@ -2,6 +2,9 @@
 name = "candor-telemetry"
 version.workspace = true
 edition.workspace = true
+description = "OpenTelemetry tracing and logging integration"
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 tracing = { workspace = true }

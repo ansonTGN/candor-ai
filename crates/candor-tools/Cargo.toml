@@ -2,6 +2,9 @@
 name = "candor-tools"
 version.workspace = true
 edition.workspace = true
+description = "12 agent tools: file I/O, search, shell, test, git (sentinel-gated)"
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

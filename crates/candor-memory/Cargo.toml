@@ -2,6 +2,9 @@
 name = "candor-memory"
 version.workspace = true
 edition.workspace = true
+description = "SurrealDB-backed memory with HNSW vector index and auto-compaction"
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }
