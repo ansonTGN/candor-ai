@@ -66,19 +66,17 @@ pub async fn monitor_prompt() -> Result<String, String> {
             .join("WORK")
             .join(slug);
         let isa_path = work_dir.join("ISA.md");
-        if isa_path.exists() {
-            if let Ok(meta) = tokio::fs::metadata(&isa_path).await {
-                if let Ok(modified) = meta.modified() {
-                    if let Ok(elapsed) = modified.elapsed() {
-                        let days = elapsed.as_secs_f64() / 86400.0;
-                        if days > 7.0 {
-                            analysis.push_str(&format!(
-                                "  - ⚠️  '{slug}' is stale (last activity {:.0} days ago)\n",
-                                days
-                            ));
-                        }
-                    }
-                }
+        if isa_path.exists()
+            && let Ok(meta) = tokio::fs::metadata(&isa_path).await
+            && let Ok(modified) = meta.modified()
+            && let Ok(elapsed) = modified.elapsed()
+        {
+            let days = elapsed.as_secs_f64() / 86400.0;
+            if days > 7.0 {
+                analysis.push_str(&format!(
+                    "  - ⚠️  '{slug}' is stale (last activity {:.0} days ago)\n",
+                    days
+                ));
             }
         }
     }

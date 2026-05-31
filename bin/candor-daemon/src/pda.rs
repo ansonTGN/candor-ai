@@ -334,10 +334,8 @@ pub async fn list_work() -> Result<Vec<String>, PdaError> {
     let mut entries = tokio::fs::read_dir(&dir).await?;
     let mut slugs = Vec::new();
     while let Some(entry) = entries.next_entry().await? {
-        if entry.file_type().await?.is_dir() {
-            if let Some(name) = entry.file_name().to_str() {
-                slugs.push(name.to_string());
-            }
+        if entry.file_type().await?.is_dir() && let Some(name) = entry.file_name().to_str() {
+            slugs.push(name.to_string());
         }
     }
     slugs.sort();

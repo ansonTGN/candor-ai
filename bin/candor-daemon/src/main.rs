@@ -616,6 +616,7 @@ async fn run_doctor() {
         ("espeak-ng", check_cmd("espeak-ng") || check_cmd("espeak")),
         ("aplay", check_cmd("aplay")),
         ("arecord", check_cmd("arecord")),
+        ("PDA home", check_pda()),
         ("surrealDB", true), // embedded, always available
     ];
     let all_ok = checks.iter().all(|(_, ok)| *ok);
@@ -636,6 +637,17 @@ fn check_cmd(cmd: &str) -> bool {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+        .is_ok()
+}
+
+/// Check if PDA home directory is initialized.
+fn check_pda() -> bool {
+    if let Ok(home) = std::env::var("HOME") {
+        std::path::Path::new(&home)
+            .join(".candor")
+            .join("IDENTITY.md")
+            .exists()
+    } else {
+        false
+    }
 }

@@ -1,5 +1,4 @@
 /// Shared utility functions for the candor daemon.
-
 use std::path::PathBuf;
 
 /// Find a binary on PATH.
