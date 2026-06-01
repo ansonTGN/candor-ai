@@ -12,8 +12,14 @@ OS="$(uname -s)"
 ARCH="$(uname -m)"
 
 case "$OS" in
-    Linux)  OS_RAW="linux" ;;
-    Darwin) OS_RAW="macos" ;;
+    Linux)  OS_RAW="linux" ; TAG_OS="x86_64-unknown-linux-gnu" ;;
+    Darwin)
+        OS_RAW="macos"
+        case "$ARCH" in
+            x86_64|amd64) TAG_OS="x86_64-apple-darwin" ;;
+            aarch64|arm64) TAG_OS="aarch64-apple-darwin" ;;
+        esac
+        ;;
     *)      echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
@@ -41,14 +47,31 @@ if command -v cargo &>/dev/null; then
     echo "  Cargo install failed — trying pre-built binary..."
 fi
 
-# Pre-built binary (future: GitHub Releases)
-echo "  No pre-built binary available for $OS_RAW/$ARCH_RAW yet."
-echo ""
-echo "  Install Rust and run:"
-echo "    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-echo "    cargo install candor-ai"
-echo ""
-echo "  Or build from source:"
-echo "    git clone https://github.com/iknowkungfubar/candor-ai"
-echo "    cd candor-ai && cargo build --release"
-exit 1
+# Pre-built binary from GitHub Releases
+echo "  Downloading pre-built binary for $OS_RAW/$ARCH_RAW..."
+RELEASE_URL="https://github.com/$REPO/releases/latest/download/candor-$TAG_OS.tar.gz"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+if curl -sfL "$RELEASE_URL" -o "$TMP_DIR/candor.tar.gz"; then
+    tar xzf "$TMP_DIR/candor.tar.gz" -C "$TMP_DIR"
+    if [ -f "$TMP_DIR/candor" ]; then
+        install -m 755 "$TMP_DIR/candor" "$INSTALL_DIR/$BIN_NAME"
+        echo "  ✅ Candor AI installed to $INSTALL_DIR/$BIN_NAME"
+        echo "  Run '$BIN_NAME doctor' to verify"
+    else
+        echo "  ❌ Downloaded archive did not contain expected binary."
+        exit 1
+    fi
+else
+    echo "  ❌ Failed to download pre-built binary."
+    echo ""
+    echo "  Install Rust and run:"
+    echo "    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    echo "    cargo install candor-ai"
+    echo ""
+    echo "  Or build from source:"
+    echo "    git clone https://github.com/iknowkungfubar/candor-ai"
+    echo "    cd candor-ai && cargo build --release"
+    exit 1
+fi

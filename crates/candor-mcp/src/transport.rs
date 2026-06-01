@@ -40,33 +40,52 @@ impl Transport for StdioTransport {
         &self,
         request: serde_json::Value,
     ) -> Result<serde_json::Value, candor_core::error::CoreError> {
-        let _req_str = serde_json::to_string(&request)
+        let req_str = serde_json::to_string(&request)
             .map_err(|e| candor_core::error::CoreError::Serialization(e.to_string()))?;
 
-        let output = tokio::process::Command::new(&self.command)
+        let mut child = tokio::process::Command::new(&self.command)
             .args(&self.args)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
-            .output()
-            .await
+            .spawn()
             .map_err(|e| {
-                candor_core::error::CoreError::Internal(format!("MCP stdio spawn failed: {e}"))
+                candor_core::error::CoreError::Internal(format!(
+                    "MCP stdio spawn failed for '{}': {e}",
+                    self.command
+                ))
             })?;
 
-        // Write request to stdin and read from stdout (simplified: single request-response)
-        // In production, this would use a persistent process with async stdin/stdout pipes.
+        // Write the JSON-RPC request to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            stdin.write_all(req_str.as_bytes()).await.map_err(|e| {
+                candor_core::error::CoreError::Internal(format!(
+                    "MCP stdio write to stdin failed: {e}"
+                ))
+            })?;
+            // Close stdin to signal EOF to the child process
+            drop(stdin);
+        }
+
+        // Read stdout
+        let output = child.wait_with_output().await.map_err(|e| {
+            candor_core::error::CoreError::Internal(format!("MCP stdio wait failed: {e}"))
+        })?;
+
         let raw = String::from_utf8_lossy(&output.stdout).to_string();
+        let _stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
         if raw.trim().is_empty() {
             return Err(candor_core::error::CoreError::Internal(format!(
-                "MCP stdio: no response from {}",
-                self.command
+                "MCP stdio: no response from '{}' (stderr: {})",
+                self.command, _stderr
             )));
         }
 
         // Parse each line as a JSON-RPC response
         for line in raw.lines() {
-            if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(line.trim()) {
                 return Ok(val);
             }
         }

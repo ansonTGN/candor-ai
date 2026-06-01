@@ -68,9 +68,10 @@ impl WasmBackend {
             .await
             .map_err(|e| CoreError::Internal(format!("Failed to read WASM module: {e}")))?;
 
-        // Configure engine with fuel metering.
+        // Configure engine with fuel metering and async support.
         let mut config = wasmtime::Config::new();
         config.consume_fuel(true);
+        config.async_support(true);
 
         let engine = wasmtime::Engine::new(&config)
             .map_err(|e| CoreError::Internal(format!("Failed to create wasmtime engine: {e}")))?;

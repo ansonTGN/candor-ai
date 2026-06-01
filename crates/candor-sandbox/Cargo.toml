@@ -13,10 +13,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
-anyhow = { workspace = true }
-tempfile = { workspace = true }
 uuid = { workspace = true }
-
-# WASM runtime
 wasmtime = { workspace = true }
 cap-std = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+wat = "1"

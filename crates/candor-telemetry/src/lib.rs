@@ -57,7 +57,7 @@ pub fn init_telemetry(service_name: &str, otlp_endpoint: Option<&str>) -> Teleme
                 let tracer = provider.tracer(service_name.to_owned());
                 let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
-                tracing_subscriber::registry()
+                let _ = tracing_subscriber::registry()
                     .with(otel_layer)
                     .with(tracing_subscriber::EnvFilter::from_default_env())
                     .with(
@@ -65,7 +65,7 @@ pub fn init_telemetry(service_name: &str, otlp_endpoint: Option<&str>) -> Teleme
                             .with_target(true)
                             .with_thread_ids(true),
                     )
-                    .init();
+                    .try_init();
 
                 Some(provider)
             }

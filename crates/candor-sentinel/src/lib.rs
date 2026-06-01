@@ -11,7 +11,7 @@
 // 4. No-Slop Code: reject dead code, TODOs, narration comments
 // 5. Git-Discipline: feature branches, no force push
 
-pub mod ast_checker;
+pub mod ast;
 pub mod doctrine;
 pub mod interceptor;
 pub mod rules;

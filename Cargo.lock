@@ -768,6 +768,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -819,7 +820,6 @@ dependencies = [
 name = "candor-sandbox"
 version = "1.0.0"
 dependencies = [
- "anyhow",
  "candor-core",
  "cap-std",
  "serde",
@@ -830,6 +830,7 @@ dependencies = [
  "tracing",
  "uuid",
  "wasmtime",
+ "wat",
 ]
 
 [[package]]

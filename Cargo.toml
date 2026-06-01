@@ -20,6 +20,8 @@ edition = "2024"
 authors = ["Candor AI <candor@nousresearch.com>"]
 license = "MIT"
 repository = "https://github.com/iknowkungfubar/candor-ai"
+homepage = "https://github.com/iknowkungfubar/candor-ai"
+documentation = "https://docs.rs/candor-ai"
 description = "Lawful Good Rust Agentic Operating System — 7-phase agent with voice, PDA, memory"
 readme = "README.md"
 keywords = ["agent", "ai", "llm", "automation", "pda"]
@@ -70,7 +72,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 
 # Sandbox / WASM
-wasmtime = "36"
+wasmtime = { version = "36", features = ["async"] }
 cap-std = "3"
 
 # HTTP server
@@ -99,6 +101,7 @@ debug = 0
 
 [profile.release]
 opt-level = 3
-lto = "thin"
+lto = "fat"
 codegen-units = 1
 strip = true
+panic = "abort"
