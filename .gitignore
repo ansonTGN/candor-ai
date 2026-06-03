@@ -35,3 +35,6 @@ node_modules/
 
 # Build output
 desktop/dist/
+
+# Hermes agent artifacts
+.hermes/
