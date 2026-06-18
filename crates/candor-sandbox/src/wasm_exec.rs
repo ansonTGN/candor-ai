@@ -71,6 +71,7 @@ impl WasmBackend {
         // Configure engine with fuel metering and async support.
         let mut config = wasmtime::Config::new();
         config.consume_fuel(true);
+        #[allow(deprecated)]
         config.async_support(true);
 
         let engine = wasmtime::Engine::new(&config)
