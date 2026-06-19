@@ -1,33 +1,19 @@
 ---
 name: Feature request
-about: Suggest an idea for Candor AI
+about: Suggest an idea for this project
 title: ''
 labels: enhancement
 assignees: ''
-
 ---
 
-## Problem Statement
-
-Is your feature request related to a problem? Please describe.
+**Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 
-## Proposed Solution
-
+**Describe the solution you'd like**
 A clear and concise description of what you want to happen.
 
-## Alternative Solutions
-
+**Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
 
-## Impact
-
-Describe how this feature would benefit Candor AI users:
-- Performance improvements?
-- Security hardening?
-- Developer experience?
-- End-user functionality?
-
-## Additional Context
-
+**Additional context**
 Add any other context or screenshots about the feature request here.
