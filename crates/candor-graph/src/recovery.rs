@@ -46,10 +46,7 @@ impl AgentNode for RecoveryNode {
     }
 
     async fn execute(&self, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
-        let attempt = self
-            .attempt
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-            + 1;
+        let attempt = self.attempt.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
 
         if attempt > self.max_retries {
             error!(

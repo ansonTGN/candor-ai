@@ -23,8 +23,8 @@ use candor_memory::store::MemorySystem;
 use candor_sandbox::unified::ToolSandbox;
 use candor_tools::registry::{ToolContext, ToolRegistry};
 use candor_tools::{
-    GitBranchTool, GitCommitTool, GitPushTool, GitStatusTool, ListDirTool, ReadFileTool,
-    RunTestsTool, SearchCodeTool, SearchFilesTool, ShellTool, WriteFileTool,
+    GitBranchTool, GitCommitTool, GitPushTool, GitStatusTool, ListDirTool, ReadFileTool, RunTestsTool, SearchCodeTool,
+    SearchFilesTool, ShellTool, WriteFileTool,
 };
 
 use super::markdown_router::MarkdownContext;
@@ -63,11 +63,9 @@ impl OrchestratorEngine {
     ) -> Result<Self, CoreError> {
         info!("Initializing Candor Agent");
 
-        let sandbox =
-            ToolSandbox::new().map_err(|e| CoreError::Internal(format!("Sandbox: {e}")))?;
+        let sandbox = ToolSandbox::new().map_err(|e| CoreError::Internal(format!("Sandbox: {e}")))?;
 
-        let sentinel =
-            candor_sentinel::interceptor::SentinelInterceptor::new(Arc::clone(&cognitive), vec![]);
+        let sentinel = candor_sentinel::interceptor::SentinelInterceptor::new(Arc::clone(&cognitive), vec![]);
 
         let mut tools = ToolRegistry::new();
         tools.register(Arc::new(ReadFileTool));
@@ -123,9 +121,7 @@ impl OrchestratorEngine {
             if let Ok(identity) = std::fs::read_to_string(dirs_or_default().join("IDENTITY.md")) {
                 s.append_message(&format!("## User Identity\n\n{}", identity));
             }
-            if let Ok(da_identity) =
-                std::fs::read_to_string(dirs_or_default().join("DA_IDENTITY.md"))
-            {
+            if let Ok(da_identity) = std::fs::read_to_string(dirs_or_default().join("DA_IDENTITY.md")) {
                 s.append_message(&format!("## Assistant Identity\n\n{}", da_identity));
             }
 
@@ -144,10 +140,7 @@ impl OrchestratorEngine {
                     }
                 }
                 if !entries.is_empty() {
-                    s.append_message(&format!(
-                        "## Prior Learnings\n\n{}",
-                        entries.join("\n\n---\n\n")
-                    ));
+                    s.append_message(&format!("## Prior Learnings\n\n{}", entries.join("\n\n---\n\n")));
                 }
             }
         }
@@ -192,10 +185,8 @@ impl OrchestratorEngine {
                             }
                             Err(recovery_err) => {
                                 // Recovery node exhausted its retries
-                                let msg = format!(
-                                    "Recovery exhausted ({}): {} — {}",
-                                    strategy.reason, recovery_err, e,
-                                );
+                                let msg =
+                                    format!("Recovery exhausted ({}): {} — {}", strategy.reason, recovery_err, e,);
                                 error!("{}", msg);
                                 break Err(CoreError::GraphExecution(msg));
                             }
@@ -383,11 +374,7 @@ impl PhaseContext {
         base_prompt.to_string()
     }
 
-    async fn observe(
-        &self,
-        ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn observe(&self, ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let mut s = state.lock().await;
         s.log_event("Observe: scanning project");
 
@@ -413,11 +400,7 @@ impl PhaseContext {
         Ok(())
     }
 
-    async fn think(
-        &self,
-        _ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn think(&self, _ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let context = {
             let s = state.lock().await;
             s.message_history
@@ -448,11 +431,7 @@ impl PhaseContext {
         Ok(())
     }
 
-    async fn plan(
-        &self,
-        _ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn plan(&self, _ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let context = {
             let s = state.lock().await;
             s.message_history
@@ -485,11 +464,7 @@ impl PhaseContext {
         Ok(())
     }
 
-    async fn build(
-        &self,
-        _ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn build(&self, _ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let context = {
             let s = state.lock().await;
             s.message_history
@@ -521,11 +496,7 @@ impl PhaseContext {
         Ok(())
     }
 
-    async fn exec(
-        &self,
-        ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn exec(&self, ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         // ── ISA validation gate (Build→Execute transition) ──
         // The Ideal State Artifact must define acceptance criteria before
         // execution can proceed. This enforces the design contract that
@@ -584,8 +555,9 @@ impl PhaseContext {
         let mut invalid_criteria = Vec::new();
         for criterion in &isa.acceptance_criteria {
             let is_valid = match &criterion.verification_method {
-                VerificationMethod::ShellCommand { command }
-                | VerificationMethod::LintCheck { command } => !command.trim().is_empty(),
+                VerificationMethod::ShellCommand { command } | VerificationMethod::LintCheck { command } => {
+                    !command.trim().is_empty()
+                }
                 VerificationMethod::TestCase { test_name } => !test_name.trim().is_empty(),
                 VerificationMethod::FileExists { path } => !path.trim().is_empty(),
                 VerificationMethod::FileMatches { path, pattern } => {
@@ -627,11 +599,7 @@ impl PhaseContext {
         Ok(())
     }
 
-    async fn verify(
-        &self,
-        ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn verify(&self, ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let mut s = state.lock().await;
         s.log_event("Verify: starting ISA criterion verification");
         let isa = s.ideal_state.clone();
@@ -662,10 +630,7 @@ impl PhaseContext {
                     Some(out.success)
                 }
                 Err(e) => {
-                    state
-                        .lock()
-                        .await
-                        .log_event(&format!("Verify: test error ({e})"));
+                    state.lock().await.log_event(&format!("Verify: test error ({e})"));
                     None
                 }
             }
@@ -701,12 +666,10 @@ impl PhaseContext {
         }
 
         // ── Phase 3: Check for required human confirmation criteria ──
-        let has_human_criteria = isa.acceptance_criteria.iter().any(|c| {
-            matches!(
-                c.verification_method,
-                VerificationMethod::HumanConfirmation { .. }
-            )
-        });
+        let has_human_criteria = isa
+            .acceptance_criteria
+            .iter()
+            .any(|c| matches!(c.verification_method, VerificationMethod::HumanConfirmation { .. }));
 
         if has_human_criteria {
             summary.push_str("\n⚠️  Human confirmation required for some criteria.\n");
@@ -727,11 +690,7 @@ impl PhaseContext {
         if all_passed {
             state.lock().await.log_event("Verify: ALL CRITERIA PASSED");
         } else {
-            let failed: Vec<_> = results
-                .iter()
-                .filter(|&(_, &v)| !v)
-                .map(|(id, _)| id.clone())
-                .collect();
+            let failed: Vec<_> = results.iter().filter(|&(_, &v)| !v).map(|(id, _)| id.clone()).collect();
             let msg = format!("Verify: criteria FAILED: [{}]", failed.join(", "));
             state.lock().await.log_event(&msg);
         }
@@ -747,19 +706,11 @@ impl PhaseContext {
         state: &Arc<Mutex<AgentState>>,
     ) -> bool {
         match &criterion.verification_method {
-            VerificationMethod::ShellCommand { command } => {
-                self.verify_shell_command(command, ctx, state).await
-            }
-            VerificationMethod::TestCase { test_name } => {
-                self.verify_test_case(test_name, ctx, state).await
-            }
+            VerificationMethod::ShellCommand { command } => self.verify_shell_command(command, ctx, state).await,
+            VerificationMethod::TestCase { test_name } => self.verify_test_case(test_name, ctx, state).await,
             VerificationMethod::FileExists { path } => self.verify_file_exists(path, state).await,
-            VerificationMethod::FileMatches { path, pattern } => {
-                self.verify_file_matches(path, pattern, state).await
-            }
-            VerificationMethod::LintCheck { command } => {
-                self.verify_shell_command(command, ctx, state).await
-            }
+            VerificationMethod::FileMatches { path, pattern } => self.verify_file_matches(path, pattern, state).await,
+            VerificationMethod::LintCheck { command } => self.verify_shell_command(command, ctx, state).await,
             VerificationMethod::HumanConfirmation { prompt } => {
                 // Human confirmation criteria are verified via the BeforeExecuteConfirmation hook.
                 // In the Verify phase, we mark them as requiring approval.
@@ -774,12 +725,7 @@ impl PhaseContext {
     }
 
     /// Verify a shell command criterion: run the command and check exit code.
-    async fn verify_shell_command(
-        &self,
-        command: &str,
-        ctx: &ToolContext,
-        _state: &Arc<Mutex<AgentState>>,
-    ) -> bool {
+    async fn verify_shell_command(&self, command: &str, ctx: &ToolContext, _state: &Arc<Mutex<AgentState>>) -> bool {
         if command.trim().is_empty() {
             return false;
         }
@@ -789,32 +735,19 @@ impl PhaseContext {
                 Ok(out) => out.success,
                 Err(_) => {
                     // Fallback: run directly
-                    let output = tokio::process::Command::new("sh")
-                        .arg("-c")
-                        .arg(command)
-                        .output()
-                        .await;
+                    let output = tokio::process::Command::new("sh").arg("-c").arg(command).output().await;
                     matches!(output, Ok(o) if o.status.success())
                 }
             }
         } else {
             // No shell tool — run directly
-            let output = tokio::process::Command::new("sh")
-                .arg("-c")
-                .arg(command)
-                .output()
-                .await;
+            let output = tokio::process::Command::new("sh").arg("-c").arg(command).output().await;
             matches!(output, Ok(o) if o.status.success())
         }
     }
 
     /// Verify a test case criterion: run a specific test.
-    async fn verify_test_case(
-        &self,
-        test_name: &str,
-        ctx: &ToolContext,
-        _state: &Arc<Mutex<AgentState>>,
-    ) -> bool {
+    async fn verify_test_case(&self, test_name: &str, ctx: &ToolContext, _state: &Arc<Mutex<AgentState>>) -> bool {
         if let Some(tool) = self.tools.find("run_tests") {
             let args = if test_name.trim().is_empty() {
                 vec![]
@@ -846,12 +779,7 @@ impl PhaseContext {
     }
 
     /// Verify a file content matches a pattern criterion.
-    async fn verify_file_matches(
-        &self,
-        path: &str,
-        pattern: &str,
-        _state: &Arc<Mutex<AgentState>>,
-    ) -> bool {
+    async fn verify_file_matches(&self, path: &str, pattern: &str, _state: &Arc<Mutex<AgentState>>) -> bool {
         if path.trim().is_empty() || pattern.trim().is_empty() {
             return false;
         }
@@ -863,18 +791,10 @@ impl PhaseContext {
         content.contains(pattern)
     }
 
-    async fn learn(
-        &self,
-        _ctx: &ToolContext,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
+    async fn learn(&self, _ctx: &ToolContext, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let (task, pid, log) = {
             let s = state.lock().await;
-            (
-                s.active_task.clone(),
-                s.project_id.clone(),
-                s.execution_log.clone(),
-            )
+            (s.active_task.clone(), s.project_id.clone(), s.execution_log.clone())
         };
 
         // Generate session summary
@@ -885,10 +805,7 @@ impl PhaseContext {
 
         if let Some(ref pid) = pid {
             let emb = vec![0.0_f32; 384];
-            let _ = self
-                .memory
-                .store_memory(pid.clone(), summary.clone(), emb)
-                .await;
+            let _ = self.memory.store_memory(pid.clone(), summary.clone(), emb).await;
             info!(pid = %pid, "Learn: stored");
         }
 
@@ -1006,9 +923,7 @@ mod tests {
             acceptance_criteria: vec![AcceptanceCriterion {
                 id: "list-output".into(),
                 description: "list_dir produces output".into(),
-                verification_method: VerificationMethod::ShellCommand {
-                    command: "ls".into(),
-                },
+                verification_method: VerificationMethod::ShellCommand { command: "ls".into() },
             }],
             constraints: vec![],
             expected_artifacts: vec![],

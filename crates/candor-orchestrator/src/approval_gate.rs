@@ -23,11 +23,7 @@ impl BeforeExecuteConfirmation for ApprovalGate {
     async fn before_execute(&self, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
         let (fully_autonomous, awaiting_approval, task) = {
             let s = state.lock().await;
-            let autonomous = s
-                .ideal_state
-                .as_ref()
-                .map(|isa| isa.fully_autonomous)
-                .unwrap_or(true);
+            let autonomous = s.ideal_state.as_ref().map(|isa| isa.fully_autonomous).unwrap_or(true);
             (autonomous, s.awaiting_approval, s.active_task.clone())
         };
 

@@ -48,9 +48,7 @@ impl Tool for SearchCodeTool {
             }
             Err(e) => {
                 // rg not installed or other error
-                Ok(ToolOutput::err(format!(
-                    "Search failed (is ripgrep installed?): {e}"
-                )))
+                Ok(ToolOutput::err(format!("Search failed (is ripgrep installed?): {e}")))
             }
         }
     }
@@ -68,9 +66,9 @@ impl Tool for SearchFilesTool {
     }
 
     async fn execute(&self, ctx: &ToolContext, args: &[String]) -> Result<ToolOutput, CoreError> {
-        let pattern = args.first().ok_or_else(|| {
-            CoreError::Internal("search_files requires a glob pattern argument".into())
-        })?;
+        let pattern = args
+            .first()
+            .ok_or_else(|| CoreError::Internal("search_files requires a glob pattern argument".into()))?;
 
         info!(pattern = %pattern, "Finding files");
 

@@ -24,10 +24,7 @@ async fn test_memory_store_and_retrieve() {
         .await
         .unwrap();
 
-    let results = memory
-        .retrieve_context("test-proj", embedding, 5)
-        .await
-        .unwrap();
+    let results = memory.retrieve_context("test-proj", embedding, 5).await.unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0], "test content");
 }

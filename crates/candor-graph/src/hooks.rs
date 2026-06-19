@@ -17,11 +17,7 @@ use candor_core::state::AgentState;
 /// If this returns Err, the action is blocked.
 #[async_trait::async_trait]
 pub trait BeforeToolCallback: Send + Sync {
-    async fn before_tool(
-        &self,
-        action: &AgentAction,
-        state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError>;
+    async fn before_tool(&self, action: &AgentAction, state: Arc<Mutex<AgentState>>) -> Result<(), CoreError>;
 }
 
 /// Hook fired after a tool/action completes.

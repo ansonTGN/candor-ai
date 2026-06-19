@@ -82,10 +82,5 @@ fn extract_summary(output: &str) -> String {
         .position(|l| l.contains("test result:"))
         .unwrap_or(lines.len().saturating_sub(5));
 
-    lines[start..]
-        .iter()
-        .take(10)
-        .copied()
-        .collect::<Vec<_>>()
-        .join("\n")
+    lines[start..].iter().take(10).copied().collect::<Vec<_>>().join("\n")
 }

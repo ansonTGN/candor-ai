@@ -68,11 +68,7 @@ async fn test_sentinel_clean_code_passes() {
 async fn test_sentinel_force_push_blocked() {
     let cog = make_cognitive().await;
     let s = SentinelInterceptor::new(cog, vec![]);
-    assert!(
-        s.evaluate_payload("git push --force origin main".into())
-            .await
-            .is_err()
-    );
+    assert!(s.evaluate_payload("git push --force origin main".into()).await.is_err());
 }
 
 #[tokio::test]

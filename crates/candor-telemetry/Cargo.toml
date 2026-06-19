@@ -5,6 +5,10 @@ edition.workspace = true
 description = "OpenTelemetry tracing and logging integration"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 tracing = { workspace = true }

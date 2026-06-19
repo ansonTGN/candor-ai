@@ -5,6 +5,10 @@ edition.workspace = true
 description = "Shared types: AgentState, IdealStateArtifact, AgentAction, CoreError"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 tokio = { workspace = true }

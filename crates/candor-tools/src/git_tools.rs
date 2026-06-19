@@ -8,10 +8,8 @@ use candor_core::error::CoreError;
 use super::registry::{Tool, ToolContext, ToolOutput};
 
 static CONVENTIONAL_COMMIT_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(
-        r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+",
-    )
-    .expect("Invalid conventional-commit regex")
+    regex::Regex::new(r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+")
+        .expect("Invalid conventional-commit regex")
 });
 
 pub struct GitBranchTool;
@@ -57,9 +55,7 @@ impl Tool for GitCommitTool {
     async fn execute(&self, ctx: &ToolContext, args: &[String]) -> Result<ToolOutput, CoreError> {
         let message = args.join(" ");
         if message.is_empty() {
-            return Err(CoreError::Internal(
-                "git_commit requires a commit message".into(),
-            ));
+            return Err(CoreError::Internal("git_commit requires a commit message".into()));
         }
 
         // Sentinel: validate conventional commit format

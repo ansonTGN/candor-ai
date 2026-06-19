@@ -5,6 +5,10 @@ edition.workspace = true
 description = "SurrealDB-backed memory with HNSW vector index and auto-compaction"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

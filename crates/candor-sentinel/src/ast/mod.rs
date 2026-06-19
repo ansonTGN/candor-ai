@@ -45,9 +45,7 @@ pub fn check_ast(source: &str) -> RulesCheck {
     }
 
     // ── Phase 2: Single-use helper detection ──
-    violations.extend(code_quality::check_single_use_helpers(
-        &fn_defs, &fn_calls, &lines,
-    ));
+    violations.extend(code_quality::check_single_use_helpers(&fn_defs, &fn_calls, &lines));
 
     // ── Phase 3: Over-abstraction detection ──
     violations.extend(code_quality::check_over_abstraction(&fn_defs, &lines));
@@ -70,9 +68,7 @@ pub fn check_ast(source: &str) -> RulesCheck {
     violations.extend(code_quality::check_if_else_chains(&lines));
 
     // ── Decision ──
-    let passed = violations
-        .iter()
-        .all(|v| v.severity != ViolationSeverity::Fatal);
+    let passed = violations.iter().all(|v| v.severity != ViolationSeverity::Fatal);
     RulesCheck { passed, violations }
 }
 
@@ -122,8 +118,7 @@ fn main() {
 }
 "#;
         let check = check_ast(source);
-        let rule_types: std::collections::HashSet<&str> =
-            check.violations.iter().map(|v| v.rule.as_str()).collect();
+        let rule_types: std::collections::HashSet<&str> = check.violations.iter().map(|v| v.rule.as_str()).collect();
 
         assert!(
             rule_types.contains("ast:narration-comment"),

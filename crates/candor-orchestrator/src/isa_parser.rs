@@ -8,8 +8,8 @@ use std::path::Path;
 
 use candor_core::error::CoreError;
 use candor_core::ideal::{
-    AcceptanceCriterion, ArtifactType, Constraint, ConstraintEnforcement, ExpectedArtifact,
-    IdealStateArtifact, VerificationMethod,
+    AcceptanceCriterion, ArtifactType, Constraint, ConstraintEnforcement, ExpectedArtifact, IdealStateArtifact,
+    VerificationMethod,
 };
 
 /// Parse an ISA from a markdown string.
@@ -93,8 +93,7 @@ pub fn parse_isa_from_markdown(id: &str, markdown: &str) -> Result<IdealStateArt
                 }
             }
             Some("autonomous")
-                if (trimmed.to_lowercase().contains("false")
-                    || trimmed.to_lowercase().contains("no")) =>
+                if (trimmed.to_lowercase().contains("false") || trimmed.to_lowercase().contains("no")) =>
             {
                 fully_autonomous = false;
             }
@@ -157,9 +156,7 @@ fn parse_criterion_line(line: &str) -> Option<AcceptanceCriterion> {
                 path: path.trim().to_string(),
             }
         } else if method_str.starts_with("human") {
-            VerificationMethod::HumanConfirmation {
-                prompt: desc.clone(),
-            }
+            VerificationMethod::HumanConfirmation { prompt: desc.clone() }
         } else if let Some(cmd) = method_str.strip_prefix("lint:") {
             VerificationMethod::LintCheck {
                 command: cmd.trim().to_string(),
@@ -227,9 +224,7 @@ fn parse_artifact_line(line: &str) -> Option<ExpectedArtifact> {
     } else if path.ends_with(".md") {
         ArtifactType::MarkdownDocument
     } else {
-        ArtifactType::Other {
-            kind: "unknown".into(),
-        }
+        ArtifactType::Other { kind: "unknown".into() }
     };
 
     Some(ExpectedArtifact {

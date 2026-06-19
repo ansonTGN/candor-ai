@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Candor AI — One-command install
-# Usage: curl -sfL https://raw.githubusercontent.com/iknowkungfubar/candor-ai/main/install.sh | sh
+# Usage: curl -sfL https://raw.githubusercontent.com/TurinTech-Solutions/candor-ai/main/install.sh | sh
 set -euo pipefail
 
-REPO="iknowkungfubar/candor-ai"
+REPO="TurinTech-Solutions/candor-ai"
 BIN_NAME="candor"
 INSTALL_DIR="${CANDOR_INSTALL_DIR:-/usr/local/bin}"
 
@@ -92,7 +92,7 @@ else
     echo "    cargo install candor-ai"
     echo ""
     echo "  Or build from source:"
-    echo "    git clone https://github.com/iknowkungfubar/candor-ai"
+    echo "    git clone https://github.com/TurinTech-Solutions/candor-ai"
     echo "    cd candor-ai && cargo build --release"
     exit 1
 fi

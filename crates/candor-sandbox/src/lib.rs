@@ -14,8 +14,6 @@ pub mod process_exec;
 pub mod unified;
 pub mod wasm_exec;
 
-pub use cross_platform::{
-    Backoff, CircuitBreaker, CircuitState, PlatformInfo, SandboxType, with_retry,
-};
+pub use cross_platform::{Backoff, CircuitBreaker, CircuitState, PlatformInfo, SandboxType, with_retry};
 pub use policy::SandboxPolicy;
 pub use unified::ToolSandbox;

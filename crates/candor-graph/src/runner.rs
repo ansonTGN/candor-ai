@@ -136,9 +136,7 @@ impl GraphRunner {
                 if let Err(e) = hook.before_tool(&action, Arc::clone(&self.state)).await {
                     error!(node = %node_label, error = %e, "BeforeToolCallback rejected action");
                     for err_hook in &self.hooks.on_error {
-                        err_hook
-                            .on_error(&e, &node_label, Arc::clone(&self.state))
-                            .await;
+                        err_hook.on_error(&e, &node_label, Arc::clone(&self.state)).await;
                     }
                     return Err(e);
                 }
@@ -162,9 +160,7 @@ impl GraphRunner {
                     error!(node = %node_label, error = %e, "Execution failed");
                     // Fire on_error hooks
                     for err_hook in &self.hooks.on_error {
-                        err_hook
-                            .on_error(&e, &node_label, Arc::clone(&self.state))
-                            .await;
+                        err_hook.on_error(&e, &node_label, Arc::clone(&self.state)).await;
                     }
                     return Err(e);
                 }
@@ -172,9 +168,7 @@ impl GraphRunner {
 
             // ── Fire after_tool hooks ──
             for hook in &self.hooks.after_tool {
-                let _ = hook
-                    .after_tool(&action, "ok", Arc::clone(&self.state))
-                    .await;
+                let _ = hook.after_tool(&action, "ok", Arc::clone(&self.state)).await;
             }
 
             // ── Fire checkpoint hooks every 5 iterations ──

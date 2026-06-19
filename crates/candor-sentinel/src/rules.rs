@@ -44,12 +44,10 @@ static NARRATION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 static FORCE_PUSH_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"git\s+push\s+(-f|--force)").expect("Invalid force-push regex"));
 
-static RM_RF_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"rm\s+-rf\s+/").expect("Invalid rm-rf regex"));
+static RM_RF_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"rm\s+-rf\s+/").expect("Invalid rm-rf regex"));
 
 static DEAD_CODE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?i)(if\s+false|while\s+false|unreachable!\(\s*"never"\s*\))"#)
-        .expect("Invalid dead-code regex")
+    Regex::new(r#"(?i)(if\s+false|while\s+false|unreachable!\(\s*"never"\s*\))"#).expect("Invalid dead-code regex")
 });
 
 /// Run all deterministic rules against a payload.
@@ -62,9 +60,7 @@ pub fn enforce_deterministic_rules(payload: &str, valid_scopes: &[String]) -> Ru
         if !in_scope {
             violations.push(RuleViolation {
                 rule: "scope-lock".into(),
-                description:
-                    "Payload does not match any valid scope — out-of-scope invocation blocked."
-                        .into(),
+                description: "Payload does not match any valid scope — out-of-scope invocation blocked.".into(),
                 severity: ViolationSeverity::Fatal,
             });
         }
@@ -92,8 +88,7 @@ pub fn enforce_deterministic_rules(payload: &str, valid_scopes: &[String]) -> Ru
     if TODO_REGEX.is_match(payload) {
         violations.push(RuleViolation {
             rule: "no-slop: vague-todo".into(),
-            description: "Vague TODO detected — replace with specific issue reference or remove."
-                .into(),
+            description: "Vague TODO detected — replace with specific issue reference or remove.".into(),
             severity: ViolationSeverity::Fatal,
         });
     }
@@ -116,9 +111,7 @@ pub fn enforce_deterministic_rules(payload: &str, valid_scopes: &[String]) -> Ru
         });
     }
 
-    let passed = violations
-        .iter()
-        .all(|v| v.severity != ViolationSeverity::Fatal);
+    let passed = violations.iter().all(|v| v.severity != ViolationSeverity::Fatal);
 
     RulesCheck { passed, violations }
 }
@@ -134,10 +127,8 @@ pub async fn verify_file_exists(path: &str) -> Result<bool, CoreError> {
 /// Check that a proposed commit message follows conventional commits.
 pub fn check_conventional_commit(message: &str) -> RulesCheck {
     static CONVENTIONAL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(
-            r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+",
-        )
-        .expect("Invalid conventional-commit regex")
+        Regex::new(r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+")
+            .expect("Invalid conventional-commit regex")
     });
 
     if CONVENTIONAL_REGEX.is_match(message.trim()) {
@@ -163,25 +154,16 @@ mod tests {
 
     #[test]
     fn test_scope_lock_violation() {
-        let check = enforce_deterministic_rules(
-            "delete the database",
-            &["read_file".into(), "write_test".into()],
-        );
+        let check = enforce_deterministic_rules("delete the database", &["read_file".into(), "write_test".into()]);
         assert!(!check.passed);
         assert!(check.violations.iter().any(|v| v.rule == "scope-lock"));
     }
 
     #[test]
     fn test_force_push_blocked() {
-        let check =
-            enforce_deterministic_rules("git push --force origin main", &["git push".into()]);
+        let check = enforce_deterministic_rules("git push --force origin main", &["git push".into()]);
         assert!(!check.passed);
-        assert!(
-            check
-                .violations
-                .iter()
-                .any(|v| v.rule.contains("force-push"))
-        );
+        assert!(check.violations.iter().any(|v| v.rule.contains("force-push")));
     }
 
     #[test]
@@ -192,10 +174,7 @@ mod tests {
 
     #[test]
     fn test_clean_payload_passes() {
-        let check = enforce_deterministic_rules(
-            "fn add(a: i32, b: i32) -> i32 { a + b }",
-            &["fn add".into()],
-        );
+        let check = enforce_deterministic_rules("fn add(a: i32, b: i32) -> i32 { a + b }", &["fn add".into()]);
         assert!(check.passed);
     }
 

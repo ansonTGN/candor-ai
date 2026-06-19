@@ -37,10 +37,7 @@ pub struct SentinelInterceptor {
 }
 
 impl SentinelInterceptor {
-    pub fn new(
-        classifier: Arc<candor_cognitive::CognitiveEngine>,
-        valid_scopes: Vec<String>,
-    ) -> Self {
+    pub fn new(classifier: Arc<candor_cognitive::CognitiveEngine>, valid_scopes: Vec<String>) -> Self {
         Self {
             local_classifier: classifier,
             valid_scopes,
@@ -82,11 +79,7 @@ impl SentinelInterceptor {
         let check = enforce_deterministic_rules(payload, &self.valid_scopes);
 
         if !check.passed {
-            let messages: Vec<String> = check
-                .violations
-                .iter()
-                .map(|v| v.description.clone())
-                .collect();
+            let messages: Vec<String> = check.violations.iter().map(|v| v.description.clone()).collect();
 
             error!(
                 violations = ?messages,
@@ -120,13 +113,10 @@ impl SentinelInterceptor {
         let cognitive = Arc::clone(&self.local_classifier);
         let payload = code_payload.clone();
 
-        let evaluation = tokio::task::spawn(async move {
-            slop_detector::evaluate_for_slop(&cognitive, &payload).await
-        })
-        .await
-        .map_err(|_| {
-            CoreError::SentinelSemanticRejection("Tokio task panicked during audit".into())
-        })?;
+        let evaluation =
+            tokio::task::spawn(async move { slop_detector::evaluate_for_slop(&cognitive, &payload).await })
+                .await
+                .map_err(|_| CoreError::SentinelSemanticRejection("Tokio task panicked during audit".into()))?;
 
         match evaluation {
             Ok(true) => {
@@ -149,10 +139,7 @@ impl SentinelInterceptor {
     /// Evaluate an AgentAction through the full sentinel pipeline.
     pub async fn evaluate_action(&self, action: &AgentAction) -> Result<(), CoreError> {
         // For commit actions, also validate the commit message format.
-        if matches!(
-            action.action_type,
-            candor_core::protocol::ActionType::GitCommit
-        ) {
+        if matches!(action.action_type, candor_core::protocol::ActionType::GitCommit) {
             let commit_check = check_conventional_commit(&action.payload);
             if !commit_check.passed {
                 return Err(CoreError::SentinelPolicyViolation(

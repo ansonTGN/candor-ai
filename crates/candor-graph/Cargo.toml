@@ -5,6 +5,10 @@ edition.workspace = true
 description = "Petgraph-based GraphRunner with 17 lifecycle hooks and recovery nodes"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

@@ -18,9 +18,7 @@ impl McpToolBridge {
     /// Connect to one or more MCP servers specified in a connection string.
     /// Format: comma-separated transport strings.
     /// Example: "http://localhost:3000,stdio:mcp-server --port 9000"
-    pub async fn connect_all(
-        conn_str: &str,
-    ) -> Result<Vec<Arc<tokio::sync::Mutex<McpClient>>>, CoreError> {
+    pub async fn connect_all(conn_str: &str) -> Result<Vec<Arc<tokio::sync::Mutex<McpClient>>>, CoreError> {
         let mut clients = Vec::new();
 
         for part in conn_str.split(',') {
@@ -56,11 +54,7 @@ pub struct McpWrappedTool {
 }
 
 impl McpWrappedTool {
-    pub fn new(
-        tool_name: String,
-        description: String,
-        client: Arc<tokio::sync::Mutex<McpClient>>,
-    ) -> Self {
+    pub fn new(tool_name: String, description: String, client: Arc<tokio::sync::Mutex<McpClient>>) -> Self {
         Self {
             tool_name,
             description,

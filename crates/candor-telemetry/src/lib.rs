@@ -43,13 +43,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 /// and shuts down the OTLP exporter gracefully.
 #[must_use]
 pub fn init_telemetry(service_name: &str, otlp_endpoint: Option<&str>) -> TelemetryGuard {
-    let endpoint = otlp_endpoint.and_then(|e| {
-        if e.is_empty() {
-            None
-        } else {
-            Some(e.to_owned())
-        }
-    });
+    let endpoint = otlp_endpoint.and_then(|e| if e.is_empty() { None } else { Some(e.to_owned()) });
 
     let provider = if let Some(ep) = endpoint {
         match build_otlp_provider(service_name, &ep) {
@@ -60,11 +54,7 @@ pub fn init_telemetry(service_name: &str, otlp_endpoint: Option<&str>) -> Teleme
                 let _ = tracing_subscriber::registry()
                     .with(otel_layer)
                     .with(tracing_subscriber::EnvFilter::from_default_env())
-                    .with(
-                        tracing_subscriber::fmt::layer()
-                            .with_target(true)
-                            .with_thread_ids(true),
-                    )
+                    .with(tracing_subscriber::fmt::layer().with_target(true).with_thread_ids(true))
                     .try_init();
 
                 Some(provider)

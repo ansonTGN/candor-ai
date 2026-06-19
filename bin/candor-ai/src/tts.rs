@@ -64,8 +64,7 @@ impl TtsBackend {
                     None => "en_US-lessac-medium",
                 };
 
-                let device =
-                    std::env::var("CANDOR_AUDIO_OUTPUT").unwrap_or_else(|_| "default".into());
+                let device = std::env::var("CANDOR_AUDIO_OUTPUT").unwrap_or_else(|_| "default".into());
 
                 // Stage 1: Piper generates raw PCM audio.
                 let mut piper = tokio::process::Command::new(path)
@@ -145,8 +144,7 @@ impl TtsBackend {
                 // espeak-ng pipeline:
                 //   espeak-ng "text" --stdout | aplay
                 let voice = std::env::var("CANDOR_TTS_VOICE").unwrap_or_else(|_| "en-us".into());
-                let device =
-                    std::env::var("CANDOR_AUDIO_OUTPUT").unwrap_or_else(|_| "default".into());
+                let device = std::env::var("CANDOR_AUDIO_OUTPUT").unwrap_or_else(|_| "default".into());
 
                 // espeak-ng generates WAV on stdout.
                 let output = tokio::process::Command::new(path)
@@ -168,9 +166,7 @@ impl TtsBackend {
                 }
 
                 if output.stdout.is_empty() {
-                    return Err(TtsError::Backend(
-                        "espeak-ng produced no audio output".into(),
-                    ));
+                    return Err(TtsError::Backend("espeak-ng produced no audio output".into()));
                 }
 
                 // Play through aplay.

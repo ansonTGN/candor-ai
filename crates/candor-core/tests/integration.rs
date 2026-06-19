@@ -1,8 +1,8 @@
 /// Rust integration tests for candor-core.
 use candor_core::error::CoreError;
 use candor_core::ideal::{
-    AcceptanceCriterion, ArtifactType, Constraint, ConstraintEnforcement, ExpectedArtifact,
-    IdealStateArtifact, VerificationMethod,
+    AcceptanceCriterion, ArtifactType, Constraint, ConstraintEnforcement, ExpectedArtifact, IdealStateArtifact,
+    VerificationMethod,
 };
 use candor_core::protocol::{ActionType, AgentAction};
 use candor_core::state::AgentState;
@@ -110,9 +110,7 @@ fn test_isa_unmet_criteria() {
             AcceptanceCriterion {
                 id: "c1".into(),
                 description: "test criterion".into(),
-                verification_method: VerificationMethod::ShellCommand {
-                    command: "true".into(),
-                },
+                verification_method: VerificationMethod::ShellCommand { command: "true".into() },
             },
             AcceptanceCriterion {
                 id: "c2".into(),
@@ -229,18 +227,14 @@ fn test_is_destructive_db_write() {
 
 #[test]
 fn test_verification_methods() {
-    let shell = VerificationMethod::ShellCommand {
-        command: "ls".into(),
-    };
+    let shell = VerificationMethod::ShellCommand { command: "ls".into() };
     let test = VerificationMethod::TestCase {
         test_name: "my_test".into(),
     };
     let file = VerificationMethod::FileExists {
         path: "README.md".into(),
     };
-    let human = VerificationMethod::HumanConfirmation {
-        prompt: "ok?".into(),
-    };
+    let human = VerificationMethod::HumanConfirmation { prompt: "ok?".into() };
     let lint = VerificationMethod::LintCheck {
         command: "cargo clippy".into(),
     };

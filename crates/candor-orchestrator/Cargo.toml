@@ -5,6 +5,10 @@ edition.workspace = true
 description = "7-phase LLM-driven agent loop: Observe→Think→Plan→Build→Execute→Verify→Learn"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

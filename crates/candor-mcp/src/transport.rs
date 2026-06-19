@@ -40,8 +40,8 @@ impl Transport for StdioTransport {
         &self,
         request: serde_json::Value,
     ) -> Result<serde_json::Value, candor_core::error::CoreError> {
-        let req_str = serde_json::to_string(&request)
-            .map_err(|e| candor_core::error::CoreError::Serialization(e.to_string()))?;
+        let req_str =
+            serde_json::to_string(&request).map_err(|e| candor_core::error::CoreError::Serialization(e.to_string()))?;
 
         let mut child = tokio::process::Command::new(&self.command)
             .args(&self.args)
@@ -50,28 +50,24 @@ impl Transport for StdioTransport {
             .stderr(std::process::Stdio::piped())
             .spawn()
             .map_err(|e| {
-                candor_core::error::CoreError::Internal(format!(
-                    "MCP stdio spawn failed for '{}': {e}",
-                    self.command
-                ))
+                candor_core::error::CoreError::Internal(format!("MCP stdio spawn failed for '{}': {e}", self.command))
             })?;
 
         // Write the JSON-RPC request to stdin
         if let Some(mut stdin) = child.stdin.take() {
             use tokio::io::AsyncWriteExt;
             stdin.write_all(req_str.as_bytes()).await.map_err(|e| {
-                candor_core::error::CoreError::Internal(format!(
-                    "MCP stdio write to stdin failed: {e}"
-                ))
+                candor_core::error::CoreError::Internal(format!("MCP stdio write to stdin failed: {e}"))
             })?;
             // Close stdin to signal EOF to the child process
             drop(stdin);
         }
 
         // Read stdout
-        let output = child.wait_with_output().await.map_err(|e| {
-            candor_core::error::CoreError::Internal(format!("MCP stdio wait failed: {e}"))
-        })?;
+        let output = child
+            .wait_with_output()
+            .await
+            .map_err(|e| candor_core::error::CoreError::Internal(format!("MCP stdio wait failed: {e}")))?;
 
         let raw = String::from_utf8_lossy(&output.stdout).to_string();
         let _stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -136,13 +132,12 @@ impl Transport for HttpTransport {
             .json(&request)
             .send()
             .await
-            .map_err(|e| {
-                candor_core::error::CoreError::Internal(format!("MCP HTTP request failed: {e}"))
-            })?;
+            .map_err(|e| candor_core::error::CoreError::Internal(format!("MCP HTTP request failed: {e}")))?;
 
-        let val: serde_json::Value = resp.json().await.map_err(|e| {
-            candor_core::error::CoreError::Internal(format!("MCP HTTP parse failed: {e}"))
-        })?;
+        let val: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| candor_core::error::CoreError::Internal(format!("MCP HTTP parse failed: {e}")))?;
 
         Ok(val)
     }

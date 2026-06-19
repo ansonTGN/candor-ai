@@ -23,10 +23,7 @@ fn property_state_token_estimate_monotonic() {
     let mut last = 0;
     for i in 0..100 {
         state.append_message(&format!("msg {i} with padding to make it realistic"));
-        assert!(
-            state.estimated_token_count >= last,
-            "token count must be monotonic"
-        );
+        assert!(state.estimated_token_count >= last, "token count must be monotonic");
         last = state.estimated_token_count;
     }
 }
@@ -113,10 +110,7 @@ async fn edge_max_iterations_zero() {
     let idx = runner.insert_node("test", node);
     let result = runner.execute_graph(idx).await;
     assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        CoreError::MaxIterationsReached
-    ));
+    assert!(matches!(result.unwrap_err(), CoreError::MaxIterationsReached));
 }
 
 // ── Edge case: single node graph ──
@@ -212,11 +206,7 @@ fn edge_destructive_action_all_types() {
             phase: "".into(),
             sentinel_approved: false,
         };
-        assert!(
-            a.is_destructive(),
-            "{:?} should be destructive",
-            action_type
-        );
+        assert!(a.is_destructive(), "{:?} should be destructive", action_type);
     }
     for action_type in &non_destructive {
         let a = AgentAction {
@@ -229,11 +219,7 @@ fn edge_destructive_action_all_types() {
             phase: "".into(),
             sentinel_approved: false,
         };
-        assert!(
-            !a.is_destructive(),
-            "{:?} should NOT be destructive",
-            action_type
-        );
+        assert!(!a.is_destructive(), "{:?} should NOT be destructive", action_type);
     }
 }
 
@@ -249,9 +235,7 @@ async fn integration_full_agent_pipeline_mock() {
 
     let cognitive = Arc::new(CognitiveEngine::new(None, None).await.unwrap());
     let memory = Arc::new(MemorySystem::new(384).await.unwrap());
-    let mut agent = OrchestratorEngine::new(cognitive, memory, 100)
-        .await
-        .unwrap();
+    let mut agent = OrchestratorEngine::new(cognitive, memory, 100).await.unwrap();
 
     // Deactivate sentinel for mock testing
     agent.sentinel.deactivate();
@@ -264,9 +248,7 @@ async fn integration_full_agent_pipeline_mock() {
         acceptance_criteria: vec![AcceptanceCriterion {
             id: "list-output".into(),
             description: "list_dir produces output".into(),
-            verification_method: VerificationMethod::ShellCommand {
-                command: "ls".into(),
-            },
+            verification_method: VerificationMethod::ShellCommand { command: "ls".into() },
         }],
         constraints: vec![],
         expected_artifacts: vec![],
@@ -295,9 +277,7 @@ async fn integration_full_agent_pipeline_mock() {
 async fn integration_sentinel_blocks_destructive_in_pipeline() {
     let cognitive = Arc::new(CognitiveEngine::new(None, None).await.unwrap());
     let memory = Arc::new(MemorySystem::new(384).await.unwrap());
-    let mut agent = OrchestratorEngine::new(cognitive, memory, 100)
-        .await
-        .unwrap();
+    let mut agent = OrchestratorEngine::new(cognitive, memory, 100).await.unwrap();
 
     // Sentinel active — should block force push payloads
     assert!(agent.sentinel.is_active());

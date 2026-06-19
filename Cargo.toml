@@ -19,13 +19,13 @@ version = "1.0.0"
 edition = "2024"
 authors = ["Candor AI <candor@nousresearch.com>"]
 license = "MIT"
-repository = "https://github.com/iknowkungfubar/candor-ai"
-homepage = "https://github.com/iknowkungfubar/candor-ai"
+repository = "https://github.com/TurinTech-Solutions/candor-ai"
+homepage = "https://github.com/TurinTech-Solutions/candor-ai"
 documentation = "https://docs.rs/candor-ai"
 description = "Lawful Good Rust Agentic Operating System — 7-phase agent with voice, PDA, memory"
 readme = "README.md"
 keywords = ["agent", "ai", "llm", "automation", "pda"]
-categories = ["command-line-utilities", "development-tools"]
+categories = ["command-line-utilities", "development-tools", "artificial-intelligence"]
 
 [workspace.dependencies]
 # Internal crates — path for local dev, version for crates.io

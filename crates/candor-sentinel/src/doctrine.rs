@@ -20,10 +20,8 @@ pub fn enforce_doctrine(action: &AgentAction, context: &str) -> DoctrineCheck {
 
     // 1. Precision Over Persuasion — claims must survive adversarial reading
     if contains_vague_claim(context) {
-        violations.push(
-            "Precision Over Persuasion: Vague claim detected. Claims must be specific and verifiable."
-                .into(),
-        );
+        violations
+            .push("Precision Over Persuasion: Vague claim detected. Claims must be specific and verifiable.".into());
     }
 
     // 2. Systems Before Tools — tools are replaceable, architecture is not
@@ -31,31 +29,23 @@ pub fn enforce_doctrine(action: &AgentAction, context: &str) -> DoctrineCheck {
 
     // 3. AI Is Infrastructure, Not Authority — hard constraints on real-world actions
     if action.is_destructive() && !action.sentinel_approved {
-        violations.push(
-            "AI Is Infrastructure, Not Authority: Destructive action requires sentinel approval."
-                .into(),
-        );
+        violations.push("AI Is Infrastructure, Not Authority: Destructive action requires sentinel approval.".into());
     }
 
     // 4. Failure Is the Primary Use Case — design for failure first
     if !action.is_reversible
         && matches!(
             action.action_type,
-            candor_core::protocol::ActionType::FileWrite
-                | candor_core::protocol::ActionType::FileDelete
+            candor_core::protocol::ActionType::FileWrite | candor_core::protocol::ActionType::FileDelete
         )
     {
-        warnings.push(
-            "Failure Is the Primary Use Case: Irreversible action — ensure rollback is possible."
-                .into(),
-        );
+        warnings.push("Failure Is the Primary Use Case: Irreversible action — ensure rollback is possible.".into());
     }
 
     // 5. Marketing Is Not Evidence — claims require implementation proof
     if contains_marketing_language(context) {
         violations.push(
-            "Marketing Is Not Evidence: Remove marketing language. Claims require sandbox-verified proof."
-                .into(),
+            "Marketing Is Not Evidence: Remove marketing language. Claims require sandbox-verified proof.".into(),
         );
     }
 
@@ -65,30 +55,22 @@ pub fn enforce_doctrine(action: &AgentAction, context: &str) -> DoctrineCheck {
     // 7. Sustainability Is a Hard Constraint — human limits are design inputs
     if action.payload.len() > 100_000 {
         violations.push(
-            "Sustainability Is a Hard Constraint: Payload exceeds cognitive limit. Break into smaller steps."
-                .into(),
+            "Sustainability Is a Hard Constraint: Payload exceeds cognitive limit. Break into smaller steps.".into(),
         );
     }
 
     // 8. Simplicity Is an Ethical Choice — visible, observable logic
     if contains_over_abstraction(context) {
-        violations.push(
-            "Simplicity Is an Ethical Choice: Over-abstraction detected. Use visible, simple logic."
-                .into(),
-        );
+        violations
+            .push("Simplicity Is an Ethical Choice: Over-abstraction detected. Use visible, simple logic.".into());
     }
 
     // 9. Prevention Is the Highest Form of Competence — prevent failure
     // (Enforced by sentinel deterministic rules — force-push, rm -rf, etc.)
 
     // 10. Reversibility Matters More Than Speed — undo is cheap
-    if matches!(
-        action.action_type,
-        candor_core::protocol::ActionType::ForcePush
-    ) {
-        violations.push(
-            "Reversibility Matters More Than Speed: Force push is irreversible. Blocked.".into(),
-        );
+    if matches!(action.action_type, candor_core::protocol::ActionType::ForcePush) {
+        violations.push("Reversibility Matters More Than Speed: Force push is irreversible. Blocked.".into());
     }
 
     let passed = violations.is_empty();
@@ -152,9 +134,7 @@ mod tests {
     #[test]
     fn test_marketing_language_detected() {
         assert!(contains_marketing_language("This revolutionary approach"));
-        assert!(!contains_marketing_language(
-            "The test passes with valid inputs"
-        ));
+        assert!(!contains_marketing_language("The test passes with valid inputs"));
     }
 
     #[test]

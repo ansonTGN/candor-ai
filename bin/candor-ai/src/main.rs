@@ -20,9 +20,7 @@ use clap::{Parser, Subcommand};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tracing::info;
 
-use candor_cognitive::{
-    AnthropicBackend, CognitiveEngine, DeepSeekBackend, GeminiBackend, MockBackend, OpenAiBackend,
-};
+use candor_cognitive::{AnthropicBackend, CognitiveEngine, DeepSeekBackend, GeminiBackend, MockBackend, OpenAiBackend};
 use candor_core::ideal::IdealStateArtifact;
 use candor_memory::store::MemorySystem;
 use candor_orchestrator::OrchestratorEngine;
@@ -136,20 +134,12 @@ enum PdaAction {
     Status,
     /// Read or update IDENTITY.md
     Identity {
-        #[arg(
-            short,
-            long,
-            help = "New identity content (if not provided, reads current)"
-        )]
+        #[arg(short, long, help = "New identity content (if not provided, reads current)")]
         set: Option<String>,
     },
     /// Read or update DA_IDENTITY.md
     DaIdentity {
-        #[arg(
-            short,
-            long,
-            help = "New DA identity content (if not provided, reads current)"
-        )]
+        #[arg(short, long, help = "New DA identity content (if not provided, reads current)")]
         set: Option<String>,
     },
     /// List active work sessions
@@ -216,8 +206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     // Initialise tracing: with OTLP if --otlp-endpoint is set, otherwise fmt.
-    let _telemetry =
-        candor_telemetry::init_telemetry("candor-ai", cli.otlp_endpoint.as_deref());
+    let _telemetry = candor_telemetry::init_telemetry("candor-ai", cli.otlp_endpoint.as_deref());
 
     match cli.command {
         Commands::Task {
@@ -477,9 +466,7 @@ async fn build_cognitive(
     let mut label = String::new();
 
     if let Some(ref key) = anthropic_key {
-        let m = model_name
-            .clone()
-            .unwrap_or_else(|| "claude-sonnet-4-20250514".into());
+        let m = model_name.clone().unwrap_or_else(|| "claude-sonnet-4-20250514".into());
         backend = Some(Box::new(AnthropicBackend::new(key.clone(), &m)?));
         label = format!("anthropic/{m}");
     } else if let Some(ref key) = env::var("DEEPSEEK_API_KEY").ok().as_ref() {
@@ -487,18 +474,12 @@ async fn build_cognitive(
         backend = Some(Box::new(DeepSeekBackend::new(key.to_string(), &m)?));
         label = format!("deepseek/{m}");
     } else if let Some(ref key) = env::var("GEMINI_API_KEY").ok().as_ref() {
-        let m = model_name
-            .clone()
-            .unwrap_or_else(|| "gemini-2.5-flash".into());
+        let m = model_name.clone().unwrap_or_else(|| "gemini-2.5-flash".into());
         backend = Some(Box::new(GeminiBackend::new(key.to_string(), &m)?));
         label = format!("gemini/{m}");
     } else if let Some(ref key) = openai_key {
         let m = model_name.clone().unwrap_or_else(|| "gpt-4o".into());
-        backend = Some(Box::new(OpenAiBackend::new(
-            key.clone(),
-            &m,
-            openai_base.clone(),
-        )?));
+        backend = Some(Box::new(OpenAiBackend::new(key.clone(), &m, openai_base.clone())?));
         label = if let Some(ref b) = openai_base {
             format!("openai@{b}/{m}")
         } else {
@@ -506,19 +487,11 @@ async fn build_cognitive(
         };
     } else if let Ok(base) = env::var("LM_STUDIO_URL") {
         let m = model_name.clone().unwrap_or_else(|| "local-model".into());
-        backend = Some(Box::new(OpenAiBackend::new(
-            "lm-studio".into(),
-            &m,
-            Some(base),
-        )?));
+        backend = Some(Box::new(OpenAiBackend::new("lm-studio".into(), &m, Some(base))?));
         label = format!("lm-studio/{m}");
     } else if let Ok(base) = env::var("OLLAMA_URL") {
         let m = model_name.unwrap_or_else(|| "llama3".into());
-        backend = Some(Box::new(OpenAiBackend::new(
-            "ollama".into(),
-            &m,
-            Some(base),
-        )?));
+        backend = Some(Box::new(OpenAiBackend::new("ollama".into(), &m, Some(base))?));
         label = format!("ollama/{m}");
     }
 
@@ -575,10 +548,7 @@ async fn run_cli_task(
 
 // ── Voice task runner ──
 
-async fn run_voice_task(
-    prompt: Option<String>,
-    _duration: u64,
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn run_voice_task(prompt: Option<String>, _duration: u64) -> Result<(), Box<dyn std::error::Error>> {
     let text = stt::transcribe_mic()
         .await
         .map_err(|e| Box::new(std::io::Error::other(format!("Voice error: {e}"))))?;
@@ -615,9 +585,7 @@ async fn run_voice_interactive(
     // Check TTS availability — if not installed, warn but continue.
     let tts_ok = tts::is_available();
     if !tts_ok {
-        println!(
-            "  {YELLOW}⚠ TTS backend not found. Install piper-tts or espeak-ng for voice responses.{RESET}"
-        );
+        println!("  {YELLOW}⚠ TTS backend not found. Install piper-tts or espeak-ng for voice responses.{RESET}");
     }
 
     println!("  {GREEN}Say '{CYAN}exit{GREEN}' or '{CYAN}quit{GREEN}' to stop.{RESET}");
@@ -718,10 +686,7 @@ fn init_project(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
         "[server]\nhost = \"127.0.0.1\"\nport = 31337\ncheckpoint_dir = \"/tmp/candor-checkpoints\"\nmax_iterations = 100\n\n[sandbox]\nscratchpad_dir = \"/tmp/agent_scratchpad\"\ndefault_timeout_secs = 15\ndefault_memory_mb = 256\n\n[inference]\n# anthropic_api_key = \"sk-ant-...\"\n# openai_api_key = \"sk-...\"\nembedding_model = \"all-MiniLM-L6-v2\"\nembedding_dim = 384\n\n[memory]\nbackend = \"mem\"\ncompaction_token_limit = 135000\n",
     )?;
     std::fs::write(path.join(".gitignore"), "/target/\n.env\n/tmp/\n")?;
-    println!(
-        "{GREEN}✓{RESET} Project initialized at {BOLD}{}{RESET}",
-        path.display()
-    );
+    println!("{GREEN}✓{RESET} Project initialized at {BOLD}{}{RESET}", path.display());
     println!("  candor task \"build something\"");
     Ok(())
 }
@@ -767,10 +732,7 @@ async fn run_health_check(orch: Arc<tokio::sync::Mutex<OrchestratorEngine>>) {
             format!("{YELLOW}Inactive{RESET}")
         }
     );
-    println!(
-        "  {BOLD}Tools:{RESET}    {} registered",
-        o.tools.tool_count()
-    );
+    println!("  {BOLD}Tools:{RESET}    {} registered", o.tools.tool_count());
     println!();
     println!("{GREEN}  All systems operational.{RESET}");
 }
@@ -780,11 +742,8 @@ async fn run_health_check(orch: Arc<tokio::sync::Mutex<OrchestratorEngine>>) {
 /// Check if a newer version of Candor is available on GitHub.
 async fn check_version() -> Option<String> {
     let current = env!("CARGO_PKG_VERSION");
-    let url = "https://api.github.com/repos/iknowkungfubar/candor-ai/releases/latest";
-    let client = reqwest::Client::builder()
-        .user_agent("candor-ai-doctor")
-        .build()
-        .ok()?;
+    let url = "https://api.github.com/repos/TurinTech-Solutions/candor-ai/releases/latest";
+    let client = reqwest::Client::builder().user_agent("candor-ai-doctor").build().ok()?;
     let resp = client.get(url).send().await.ok()?;
     let json: serde_json::Value = resp.json().await.ok()?;
     let latest = json.get("tag_name")?.as_str()?.trim_start_matches('v');
@@ -828,10 +787,7 @@ async fn run_doctor() {
     // Version check
     match check_version().await {
         Some(update) => println!("  {YELLOW}⚠ Update available: {update}{RESET}"),
-        None => println!(
-            "  {GREEN}✓ Up to date (v{}){RESET}",
-            env!("CARGO_PKG_VERSION")
-        ),
+        None => println!("  {GREEN}✓ Up to date (v{}){RESET}", env!("CARGO_PKG_VERSION")),
     }
     println!();
     if all_ok {
@@ -853,10 +809,7 @@ fn check_cmd(cmd: &str) -> bool {
 /// Check if PDA home directory is initialized.
 fn check_pda() -> bool {
     if let Ok(home) = std::env::var("HOME") {
-        std::path::Path::new(&home)
-            .join(".candor")
-            .join("IDENTITY.md")
-            .exists()
+        std::path::Path::new(&home).join(".candor").join("IDENTITY.md").exists()
     } else {
         false
     }

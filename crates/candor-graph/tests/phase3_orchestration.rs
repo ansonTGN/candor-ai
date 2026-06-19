@@ -33,9 +33,7 @@ impl AgentNode for PhaseNode {
 #[tokio::test]
 async fn test_strict_7_node_traversal() {
     let mut runner = GraphRunner::new(100);
-    let phases = [
-        "Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn",
-    ];
+    let phases = ["Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn"];
     let mut indices = Vec::new();
 
     for phase in &phases {
@@ -61,12 +59,7 @@ async fn test_strict_7_node_traversal() {
         .map(|e| e.as_str())
         .collect();
     assert_eq!(events.len(), 7);
-    assert!(
-        events
-            .iter()
-            .enumerate()
-            .all(|(i, e)| e.contains(phases[i]))
-    );
+    assert!(events.iter().enumerate().all(|(i, e)| e.contains(phases[i])));
 }
 
 /// Test: human-in-the-loop pause blocks Execute phase.
@@ -98,9 +91,7 @@ async fn test_human_in_the_loop_pause() {
     };
 
     let mut runner = GraphRunner::new(100).with_hooks(hooks);
-    let phases = [
-        "Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn",
-    ];
+    let phases = ["Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn"];
     let mut indices = Vec::new();
     for phase in &phases {
         indices.push(runner.insert_node(
@@ -117,10 +108,7 @@ async fn test_human_in_the_loop_pause() {
     // Before approval, Execute should be blocked
     let result = runner.execute_graph(indices[0]).await;
     assert!(result.is_err());
-    assert!(matches!(
-        result.unwrap_err(),
-        CoreError::HumanApprovalDenied
-    ));
+    assert!(matches!(result.unwrap_err(), CoreError::HumanApprovalDenied));
 }
 
 /// Test: checkpoint saves after every node transition.
@@ -161,9 +149,7 @@ fn test_graph_node_count() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut runner = GraphRunner::new(100);
-        let phases = [
-            "Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn",
-        ];
+        let phases = ["Observe", "Think", "Plan", "Build", "Execute", "Verify", "Learn"];
         for phase in &phases {
             runner.insert_node(
                 phase,

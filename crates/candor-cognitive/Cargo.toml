@@ -5,6 +5,10 @@ edition.workspace = true
 description = "Heterogeneous LLM inference: Anthropic, OpenAI, DeepSeek, Gemini, LM Studio, Ollama"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [features]
 default = []

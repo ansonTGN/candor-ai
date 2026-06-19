@@ -33,37 +33,13 @@ const RESET: &str = "\x1b[0m";
 
 /// Phase display metadata: (name, icon, description)
 const PHASES: &[(&str, &str, &str)] = &[
-    (
-        "Observe",
-        "🔍",
-        "Scanning project context and gathering information...",
-    ),
-    (
-        "Think",
-        "🧠",
-        "Reasoning about the problem and analyzing context...",
-    ),
-    (
-        "Plan",
-        "📋",
-        "Designing a step-by-step implementation plan...",
-    ),
+    ("Observe", "🔍", "Scanning project context and gathering information..."),
+    ("Think", "🧠", "Reasoning about the problem and analyzing context..."),
+    ("Plan", "📋", "Designing a step-by-step implementation plan..."),
     ("Build", "🔧", "Writing code and generating artifacts..."),
-    (
-        "Execute",
-        "⚡",
-        "Running build, compiling, and performing actions...",
-    ),
-    (
-        "Verify",
-        "✅",
-        "Verifying outputs against acceptance criteria...",
-    ),
-    (
-        "Learn",
-        "📝",
-        "Documenting results and storing in memory...",
-    ),
+    ("Execute", "⚡", "Running build, compiling, and performing actions..."),
+    ("Verify", "✅", "Verifying outputs against acceptance criteria..."),
+    ("Learn", "📝", "Documenting results and storing in memory..."),
 ];
 
 /// O(1) phase index lookup by name.
@@ -96,11 +72,7 @@ fn load_history() -> Vec<String> {
 
 fn append_history(line: &str) {
     let path = history_path();
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-    {
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
         use std::io::Write;
         let _ = writeln!(f, "{line}");
     }
@@ -117,9 +89,7 @@ fn append_history(line: &str) {
 /// 4. Stream phase progress to the terminal
 /// 5. Show the execution log summary
 /// 6. Loop back for more input (retains conversation context)
-pub async fn run_chat(
-    orchestrator: Arc<Mutex<OrchestratorEngine>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_chat(orchestrator: Arc<Mutex<OrchestratorEngine>>) -> Result<(), Box<dyn std::error::Error>> {
     // Single persistent stdin reader (recreating BufReader would lose buffered data)
     let mut reader = BufReader::new(tokio::io::stdin());
 
@@ -158,10 +128,7 @@ pub async fn run_chat(
         let line = line_buf.trim().to_string();
 
         // ── Check for exit ──
-        if line.eq_ignore_ascii_case("/quit")
-            || line.eq_ignore_ascii_case("/exit")
-            || line.eq_ignore_ascii_case("/q")
-        {
+        if line.eq_ignore_ascii_case("/quit") || line.eq_ignore_ascii_case("/exit") || line.eq_ignore_ascii_case("/q") {
             println!("\n{GREEN}Goodbye!{RESET}");
             break;
         }
@@ -216,9 +183,7 @@ pub async fn run_chat(
 /// - Phase transitions are printed (machine-parseable)
 /// - EOF (/dev/null close) exits gracefully
 #[allow(dead_code)]
-pub async fn run_listen(
-    orchestrator: Arc<Mutex<OrchestratorEngine>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_listen(orchestrator: Arc<Mutex<OrchestratorEngine>>) -> Result<(), Box<dyn std::error::Error>> {
     let mut reader = BufReader::new(tokio::io::stdin());
     let mut line_buf = String::new();
 

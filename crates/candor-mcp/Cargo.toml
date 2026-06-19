@@ -5,6 +5,10 @@ edition.workspace = true
 description = "MCP client (Model Context Protocol) with JSON-RPC 2.0 over stdio/HTTP"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

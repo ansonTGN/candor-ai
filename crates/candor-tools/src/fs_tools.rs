@@ -11,12 +11,9 @@ use super::registry::{Tool, ToolContext, ToolOutput};
 /// NOTE: This function requires the path to exist on disk (for canonicalize).
 async fn validate_file_path(resolved: &Path, workdir: &Path) -> Result<(), CoreError> {
     // Canonicalize both paths to resolve symlinks and `..` components
-    let canonical_resolved = tokio::fs::canonicalize(resolved).await.map_err(|e| {
-        CoreError::Io(format!(
-            "Path validation failed for {}: {e}",
-            resolved.display()
-        ))
-    })?;
+    let canonical_resolved = tokio::fs::canonicalize(resolved)
+        .await
+        .map_err(|e| CoreError::Io(format!("Path validation failed for {}: {e}", resolved.display())))?;
 
     let canonical_workdir = tokio::fs::canonicalize(workdir)
         .await
@@ -159,11 +156,7 @@ impl Tool for ListDirTool {
             .map_err(|e| CoreError::Io(format!("Cannot list {}: {e}", full_path.display())))?;
 
         let mut listing = Vec::new();
-        while let Some(entry) = entries
-            .next_entry()
-            .await
-            .map_err(|e| CoreError::Io(e.to_string()))?
-        {
+        while let Some(entry) = entries.next_entry().await.map_err(|e| CoreError::Io(e.to_string()))? {
             let name = entry.file_name().to_string_lossy().to_string();
             let file_type = entry.file_type().await.ok();
             let prefix = match file_type {

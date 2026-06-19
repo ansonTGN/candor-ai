@@ -51,10 +51,7 @@ impl CognitiveEngine {
             None => false,
         };
 
-        info!(
-            frontier_healthy,
-            local_healthy, "CognitiveEngine initialized"
-        );
+        info!(frontier_healthy, local_healthy, "CognitiveEngine initialized");
 
         Ok(Self {
             frontier_pipeline: frontier,
@@ -82,9 +79,7 @@ impl CognitiveEngine {
             return Ok(backend.generate(request).await?.text);
         }
 
-        Err(CoreError::Internal(
-            "No healthy inference backend available".into(),
-        ))
+        Err(CoreError::Internal("No healthy inference backend available".into()))
     }
 
     /// Generate using the fast local pipeline (for sentinel audits).

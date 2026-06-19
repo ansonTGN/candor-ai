@@ -85,19 +85,14 @@ if __name__ == "__main__":
 #[tokio::test]
 async fn test_mcp_tool_discovery_with_real_server() {
     // Check if python3 is available
-    let python_check = std::process::Command::new("python3")
-        .arg("--version")
-        .output();
+    let python_check = std::process::Command::new("python3").arg("--version").output();
 
     if python_check.is_err() {
         eprintln!("Skipping MCP integration test: python3 not available");
         return;
     }
 
-    let transport = StdioTransport::new(
-        "python3".into(),
-        vec!["-c".into(), ECHO_SERVER_SCRIPT.into()],
-    );
+    let transport = StdioTransport::new("python3".into(), vec!["-c".into(), ECHO_SERVER_SCRIPT.into()]);
 
     let mut client = McpClient::connect("echo-server".into(), Box::new(transport))
         .await
@@ -113,19 +108,14 @@ async fn test_mcp_tool_discovery_with_real_server() {
 
 #[tokio::test]
 async fn test_mcp_tool_call_with_real_server() {
-    let python_check = std::process::Command::new("python3")
-        .arg("--version")
-        .output();
+    let python_check = std::process::Command::new("python3").arg("--version").output();
 
     if python_check.is_err() {
         eprintln!("Skipping MCP integration test: python3 not available");
         return;
     }
 
-    let transport = StdioTransport::new(
-        "python3".into(),
-        vec!["-c".into(), ECHO_SERVER_SCRIPT.into()],
-    );
+    let transport = StdioTransport::new("python3".into(), vec!["-c".into(), ECHO_SERVER_SCRIPT.into()]);
 
     let mut client = McpClient::connect("echo-server".into(), Box::new(transport))
         .await
@@ -147,19 +137,14 @@ async fn test_mcp_tool_call_with_real_server() {
 
 #[tokio::test]
 async fn test_mcp_tool_call_nonexistent() {
-    let python_check = std::process::Command::new("python3")
-        .arg("--version")
-        .output();
+    let python_check = std::process::Command::new("python3").arg("--version").output();
 
     if python_check.is_err() {
         eprintln!("Skipping MCP integration test: python3 not available");
         return;
     }
 
-    let transport = StdioTransport::new(
-        "python3".into(),
-        vec!["-c".into(), ECHO_SERVER_SCRIPT.into()],
-    );
+    let transport = StdioTransport::new("python3".into(), vec!["-c".into(), ECHO_SERVER_SCRIPT.into()]);
 
     let mut client = McpClient::connect("echo-server".into(), Box::new(transport))
         .await
@@ -176,27 +161,19 @@ async fn test_mcp_tool_call_nonexistent() {
     // Echo server echoes back any tool call, so this should succeed
     assert!(result.is_ok(), "Echo server should handle any tool");
     let output = result.unwrap();
-    assert!(
-        output.contains("test"),
-        "Echo server should echo back input"
-    );
+    assert!(output.contains("test"), "Echo server should echo back input");
 }
 
 #[tokio::test]
 async fn test_mcp_client_connection_name() {
-    let python_check = std::process::Command::new("python3")
-        .arg("--version")
-        .output();
+    let python_check = std::process::Command::new("python3").arg("--version").output();
 
     if python_check.is_err() {
         eprintln!("Skipping MCP integration test: python3 not available");
         return;
     }
 
-    let transport = StdioTransport::new(
-        "python3".into(),
-        vec!["-c".into(), ECHO_SERVER_SCRIPT.into()],
-    );
+    let transport = StdioTransport::new("python3".into(), vec!["-c".into(), ECHO_SERVER_SCRIPT.into()]);
 
     let client = McpClient::connect("my-server".into(), Box::new(transport))
         .await

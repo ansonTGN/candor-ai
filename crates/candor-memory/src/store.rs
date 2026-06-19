@@ -256,18 +256,13 @@ impl MemorySystem {
                 .map_err(|e| CoreError::Internal(format!("Delete execution logs failed: {e}")))
         })
         .await
-        .map_err(|_| {
-            CoreError::Internal("Delete all execution logs timed out after 5s".into())
-        })??;
+        .map_err(|_| CoreError::Internal("Delete all execution logs timed out after 5s".into()))??;
 
         Ok(())
     }
 
     /// Query execution logs filtered by session_id.
-    pub async fn get_execution_logs_by_session(
-        &self,
-        session_id: &str,
-    ) -> Result<Vec<ExecutionLogEntry>, CoreError> {
+    pub async fn get_execution_logs_by_session(&self, session_id: &str) -> Result<Vec<ExecutionLogEntry>, CoreError> {
         self.ensure_schema().await?;
 
         #[derive(Debug, Clone, Serialize, Deserialize)]

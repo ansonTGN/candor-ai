@@ -95,8 +95,7 @@ pub async fn health(State(state): State<AppState>) -> impl IntoResponse {
             } else {
                 "inactive".into()
             },
-            cognitive: if orch.cognitive.is_frontier_healthy() || orch.cognitive.is_local_healthy()
-            {
+            cognitive: if orch.cognitive.is_frontier_healthy() || orch.cognitive.is_local_healthy() {
                 "connected".into()
             } else {
                 "mock".into()
@@ -115,9 +114,7 @@ pub async fn status(State(state): State<AppState>) -> impl IntoResponse {
         s.current_phase.clone()
     };
 
-    let count = state
-        .session_counter
-        .load(std::sync::atomic::Ordering::SeqCst);
+    let count = state.session_counter.load(std::sync::atomic::Ordering::SeqCst);
 
     Json(StatusResponse {
         session_id: orchestrator.session_id.clone(),
@@ -158,14 +155,9 @@ pub async fn submit_task(
         fully_autonomous: true,
     };
 
-    match orchestrator
-        .run_task(&request.description, &isa, None)
-        .await
-    {
+    match orchestrator.run_task(&request.description, &isa, None).await {
         Ok(()) => {
-            state
-                .session_counter
-                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            state.session_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
             Ok(Json(TaskResponse {
                 session_id: orchestrator.session_id.clone(),
@@ -185,9 +177,7 @@ pub async fn submit_task(
 
 /// GET /api/metrics
 pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
-    let count = state
-        .session_counter
-        .load(std::sync::atomic::Ordering::SeqCst);
+    let count = state.session_counter.load(std::sync::atomic::Ordering::SeqCst);
 
     Json(MetricsResponse {
         uptime_seconds: 0,

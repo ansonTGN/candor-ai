@@ -38,18 +38,12 @@ pub async fn run_nudge(memory: &MemorySystem) -> Result<usize, CoreError> {
         return Ok(0);
     }
 
-    info!(
-        log_count = logs.len(),
-        "Memory nudge: fetched execution logs"
-    );
+    info!(log_count = logs.len(), "Memory nudge: fetched execution logs");
 
     // Step 2: Group by session_id
     let mut grouped: HashMap<String, Vec<ExecutionLogEntry>> = HashMap::new();
     for log in &logs {
-        grouped
-            .entry(log.session_id.clone())
-            .or_default()
-            .push(log.clone());
+        grouped.entry(log.session_id.clone()).or_default().push(log.clone());
     }
 
     let mut summaries_generated = 0;
@@ -60,9 +54,7 @@ pub async fn run_nudge(memory: &MemorySystem) -> Result<usize, CoreError> {
         let dim = memory.embedding_dim();
         let embedding = derive_embedding(&summary, dim);
 
-        memory
-            .store_memory("default".into(), summary, embedding)
-            .await?;
+        memory.store_memory("default".into(), summary, embedding).await?;
 
         summaries_generated += 1;
     }
@@ -70,16 +62,10 @@ pub async fn run_nudge(memory: &MemorySystem) -> Result<usize, CoreError> {
     // Step 5: Purge old log entries
     if !grouped.is_empty() {
         memory.delete_all_execution_logs().await?;
-        info!(
-            "Memory nudge: purged {} log entries after summarization",
-            logs.len()
-        );
+        info!("Memory nudge: purged {} log entries after summarization", logs.len());
     }
 
-    info!(
-        summaries_generated,
-        "Memory nudge: knowledge consolidation complete"
-    );
+    info!(summaries_generated, "Memory nudge: knowledge consolidation complete");
     Ok(summaries_generated)
 }
 
@@ -208,10 +194,7 @@ mod tests {
             if let Some(observe_pos) = summary.find("[Phase: observe]") {
                 if let Some(verify_pos) = summary.find("[Phase: verify]") {
                     assert!(build_pos < observe_pos, "build should come before observe");
-                    assert!(
-                        observe_pos < verify_pos,
-                        "observe should come before verify"
-                    );
+                    assert!(observe_pos < verify_pos, "observe should come before verify");
                 }
             }
         }
@@ -235,10 +218,7 @@ mod tests {
         let emb_a = derive_embedding("session alpha completed", 64);
         let emb_b = derive_embedding("session beta completed", 64);
 
-        assert_ne!(
-            emb_a, emb_b,
-            "different inputs should produce different embeddings"
-        );
+        assert_ne!(emb_a, emb_b, "different inputs should produce different embeddings");
     }
 
     #[test]
@@ -277,17 +257,11 @@ mod tests {
             .unwrap();
 
         let count = run_nudge(&memory).await.unwrap();
-        assert_eq!(
-            count, 2,
-            "should generate 2 summaries (sess-alpha, sess-beta)"
-        );
+        assert_eq!(count, 2, "should generate 2 summaries (sess-alpha, sess-beta)");
 
         // Verify logs were purged
         let remaining = memory.get_all_execution_logs().await.unwrap();
-        assert!(
-            remaining.is_empty(),
-            "execution logs should be purged after nudge"
-        );
+        assert!(remaining.is_empty(), "execution logs should be purged after nudge");
 
         // Verify memory blocks were stored — we can't directly query memory_block
         // without a retrieval method, but run_nudge returned Ok(2) so storage succeeded.

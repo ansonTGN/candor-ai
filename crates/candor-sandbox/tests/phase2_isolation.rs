@@ -41,10 +41,7 @@ fn test_platform_detection_returns_valid() {
     assert!(!info.os.is_empty());
     // Should be one of the valid sandbox types
     match info.sandbox_type {
-        SandboxType::Bubblewrap
-        | SandboxType::Seatbelt
-        | SandboxType::AppContainer
-        | SandboxType::Direct => {}
+        SandboxType::Bubblewrap | SandboxType::Seatbelt | SandboxType::AppContainer | SandboxType::Direct => {}
     }
 }
 
@@ -104,10 +101,7 @@ async fn test_tool_sandbox_with_policy() {
 async fn test_sandbox_shell_execution() {
     let sandbox = ToolSandbox::new().unwrap();
     let result = sandbox
-        .execute_tool(
-            "echo isolation_test",
-            candor_sandbox::unified::ExecLanguage::Shell,
-        )
+        .execute_tool("echo isolation_test", candor_sandbox::unified::ExecLanguage::Shell)
         .await;
     assert!(result.is_ok());
     assert!(result.unwrap().contains("isolation_test"));

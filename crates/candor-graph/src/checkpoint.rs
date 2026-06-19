@@ -39,8 +39,7 @@ impl CheckpointManager {
         );
 
         let path = self.checkpoint_dir.join(&filename);
-        let json = serde_json::to_string_pretty(&*state)
-            .map_err(|e| CoreError::Serialization(e.to_string()))?;
+        let json = serde_json::to_string_pretty(&*state).map_err(|e| CoreError::Serialization(e.to_string()))?;
 
         tokio::fs::write(&path, json)
             .await
@@ -58,11 +57,7 @@ impl CheckpointManager {
             .map_err(|e| CoreError::Io(e.to_string()))?;
 
         let mut entries = Vec::new();
-        while let Some(entry) = read_dir
-            .next_entry()
-            .await
-            .map_err(|e| CoreError::Io(e.to_string()))?
-        {
+        while let Some(entry) = read_dir.next_entry().await.map_err(|e| CoreError::Io(e.to_string()))? {
             let name = entry.file_name();
             if let Some(name_str) = name.to_str()
                 && name_str.ends_with(".json")
@@ -72,12 +67,7 @@ impl CheckpointManager {
         }
 
         // Sort by filename descending (latest first).
-        entries.sort_by_key(|e| {
-            e.file_name()
-                .to_str()
-                .map(|n| n.to_string())
-                .unwrap_or_default()
-        });
+        entries.sort_by_key(|e| e.file_name().to_str().map(|n| n.to_string()).unwrap_or_default());
         entries.reverse();
 
         match entries.first() {
@@ -86,8 +76,8 @@ impl CheckpointManager {
                     .await
                     .map_err(|e| CoreError::Io(e.to_string()))?;
 
-                let loaded: AgentState = serde_json::from_str(&json)
-                    .map_err(|e| CoreError::Serialization(e.to_string()))?;
+                let loaded: AgentState =
+                    serde_json::from_str(&json).map_err(|e| CoreError::Serialization(e.to_string()))?;
 
                 let mut state = state.lock().await;
                 *state = loaded;
@@ -109,20 +99,12 @@ impl CheckpointManager {
             .map_err(|e| CoreError::Io(e.to_string()))?;
 
         let mut entries = Vec::new();
-        while let Some(entry) = read_dir
-            .next_entry()
-            .await
-            .map_err(|e| CoreError::Io(e.to_string()))?
-        {
+        while let Some(entry) = read_dir.next_entry().await.map_err(|e| CoreError::Io(e.to_string()))? {
             entries.push(entry);
         }
 
         // Sort by modification time ascending.
-        entries.sort_by_key(|e| {
-            std::fs::metadata(e.path())
-                .ok()
-                .and_then(|m| m.modified().ok())
-        });
+        entries.sort_by_key(|e| std::fs::metadata(e.path()).ok().and_then(|m| m.modified().ok()));
 
         let to_remove = entries.len().saturating_sub(self.max_checkpoints);
         for entry in entries.iter().take(to_remove) {

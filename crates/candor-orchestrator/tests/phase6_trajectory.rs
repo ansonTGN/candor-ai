@@ -131,9 +131,7 @@ async fn test_jsonl_appends_multiple_entries() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("daily.jsonl");
 
-    for phase in &[
-        "observe", "think", "plan", "build", "execute", "verify", "learn",
-    ] {
+    for phase in &["observe", "think", "plan", "build", "execute", "verify", "learn"] {
         let entry = TrajectoryEntry::new("sess-1", phase, &format!("did {phase}"), "ok");
         append_to_jsonl(&entry, &path).await.unwrap();
     }
@@ -178,10 +176,7 @@ async fn test_lora_pipeline_provision_writes_config() {
     assert!(pipeline.validate().unwrap());
     pipeline.provision().await.unwrap();
 
-    let config_path = dir
-        .path()
-        .join("lora_weights")
-        .join("lora_pipeline_config.json");
+    let config_path = dir.path().join("lora_weights").join("lora_pipeline_config.json");
     assert!(config_path.exists());
 
     let config = tokio::fs::read_to_string(&config_path).await.unwrap();

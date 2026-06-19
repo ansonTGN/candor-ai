@@ -87,9 +87,7 @@ impl ProcessBackend {
         } else if seatbelt_available {
             info!("macOS Seatbelt detected — enabling OS-level sandbox");
         } else {
-            info!(
-                "No OS-level sandbox available — falling back to direct execution with resource limits"
-            );
+            info!("No OS-level sandbox available — falling back to direct execution with resource limits");
         }
 
         Ok(Self {
@@ -103,10 +101,7 @@ impl ProcessBackend {
 
     /// Execute code through the OS-level sandbox.
     #[instrument(skip(self))]
-    pub async fn execute(
-        &self,
-        request: &ProcessExecRequest,
-    ) -> Result<ProcessExecResult, CoreError> {
+    pub async fn execute(&self, request: &ProcessExecRequest) -> Result<ProcessExecResult, CoreError> {
         info!(
             language = ?request.language,
             "Executing in OS-level process sandbox"
@@ -117,16 +112,12 @@ impl ProcessBackend {
             Language::Rust => ("rust-script", "-e", "rs"),
             Language::Shell => ("sh", "-c", "sh"),
             Language::Wasm => {
-                return Err(CoreError::Internal(
-                    "WASM execution must go through WasmBackend".into(),
-                ));
+                return Err(CoreError::Internal("WASM execution must go through WasmBackend".into()));
             }
         };
 
         // Write code to a temp file in the scratchpad.
-        let script_path = self
-            .scratchpad
-            .join(format!("script_{}.{ext}", uuid::Uuid::new_v4()));
+        let script_path = self.scratchpad.join(format!("script_{}.{ext}", uuid::Uuid::new_v4()));
         tokio::fs::write(&script_path, &request.code)
             .await
             .map_err(|e| CoreError::Io(e.to_string()))?;
@@ -141,14 +132,11 @@ impl ProcessBackend {
         }
 
         let result = if self.bwrap_available {
-            self.execute_with_bwrap(&script_path, runtime, request)
-                .await
+            self.execute_with_bwrap(&script_path, runtime, request).await
         } else if self.seatbelt_available {
-            self.execute_with_seatbelt(&script_path, runtime, request)
-                .await
+            self.execute_with_seatbelt(&script_path, runtime, request).await
         } else {
-            self.execute_direct(&script_path, runtime, code_arg, request)
-                .await
+            self.execute_direct(&script_path, runtime, code_arg, request).await
         };
 
         // Clean up scratch file.
@@ -173,9 +161,7 @@ impl ProcessBackend {
         cmd.arg("--ro-bind").arg("/usr").arg("/usr");
         cmd.arg("--ro-bind").arg("/lib").arg("/lib");
         cmd.arg("--ro-bind").arg("/lib64").arg("/lib64");
-        cmd.arg("--bind")
-            .arg(&self.scratchpad)
-            .arg(&self.scratchpad);
+        cmd.arg("--bind").arg(&self.scratchpad).arg(&self.scratchpad);
         cmd.arg("--proc").arg("/proc");
         cmd.arg("--dev").arg("/dev");
         cmd.arg("--unshare-all");
@@ -278,9 +264,7 @@ impl ProcessBackend {
         _runtime: &str,
         _request: &ProcessExecRequest,
     ) -> Result<ProcessExecResult, CoreError> {
-        Err(CoreError::Internal(
-            "Seatbelt is only available on macOS".into(),
-        ))
+        Err(CoreError::Internal("Seatbelt is only available on macOS".into()))
     }
 
     /// Execute directly with OS-level sandbox isolation (fallback when bubblewrap unavailable).

@@ -46,11 +46,7 @@ async fn test_wasm_exec_minimal_module() {
     };
 
     let result = backend.execute(&request).await;
-    assert!(
-        result.is_ok(),
-        "WASM execution should succeed, got: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "WASM execution should succeed, got: {:?}", result.err());
     let result = result.unwrap();
     assert_eq!(result.exit_code, 42, "Should return 42 from WASM module");
     assert!(result.fuel_used > 0, "Fuel should be consumed");
@@ -97,10 +93,7 @@ async fn test_wasm_fuel_limit_exhausted() {
     };
 
     let result = backend.execute(&request).await;
-    assert!(
-        result.is_err(),
-        "Infinite loop should be trapped by fuel limit"
-    );
+    assert!(result.is_err(), "Infinite loop should be trapped by fuel limit");
     let err = result.unwrap_err().to_string();
     assert!(
         err.contains("fuel") || err.contains("trap"),

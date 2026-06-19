@@ -63,11 +63,7 @@ pub fn extract_fn_name(line: &str) -> Option<String> {
         if let Some(paren) = after_fn.find('(') {
             let name_candidate = after_fn[..paren].trim();
             // Strip generics like 'name<T>'
-            let name = name_candidate
-                .split('<')
-                .next()
-                .unwrap_or(name_candidate)
-                .trim();
+            let name = name_candidate.split('<').next().unwrap_or(name_candidate).trim();
             if !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_') {
                 return Some(name.to_string());
             }
@@ -128,15 +124,9 @@ mod tests {
     #[test]
     fn test_fn_def_extraction() {
         assert_eq!(extract_fn_name("fn foo() {}").as_deref(), Some("foo"));
-        assert_eq!(
-            extract_fn_name("pub fn bar(x: i32) -> i32").as_deref(),
-            Some("bar")
-        );
+        assert_eq!(extract_fn_name("pub fn bar(x: i32) -> i32").as_deref(), Some("bar"));
         assert_eq!(extract_fn_name("async fn baz()").as_deref(), Some("baz"));
-        assert_eq!(
-            extract_fn_name("pub async fn qux()").as_deref(),
-            Some("qux")
-        );
+        assert_eq!(extract_fn_name("pub async fn qux()").as_deref(), Some("qux"));
         assert_eq!(
             extract_fn_name("fn with_generics<T: Clone>(x: T)").as_deref(),
             Some("with_generics")
@@ -148,15 +138,9 @@ mod tests {
     #[test]
     fn test_strip_modifiers() {
         assert_eq!(strip_visibility_and_modifiers("pub fn foo"), "fn foo");
-        assert_eq!(
-            strip_visibility_and_modifiers("pub(crate) fn bar"),
-            "fn bar"
-        );
+        assert_eq!(strip_visibility_and_modifiers("pub(crate) fn bar"), "fn bar");
         assert_eq!(strip_visibility_and_modifiers("async fn baz"), "fn baz");
-        assert_eq!(
-            strip_visibility_and_modifiers("pub unsafe fn qux"),
-            "fn qux"
-        );
+        assert_eq!(strip_visibility_and_modifiers("pub unsafe fn qux"), "fn qux");
     }
 
     #[test]
@@ -180,9 +164,6 @@ fn bar() {
         assert!(body.iter().any(|l| l.contains("x + y")));
 
         let body2 = collect_fn_body(&lines, 6);
-        assert!(
-            body2.iter().any(|l| l.contains("42")),
-            "Should collect bar's body"
-        );
+        assert!(body2.iter().any(|l| l.contains("42")), "Should collect bar's body");
     }
 }

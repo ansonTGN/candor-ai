@@ -47,9 +47,7 @@ fn bench_state_token_limit_check(c: &mut Criterion) {
     c.bench_function("state/is_over_token_limit", |b| {
         let mut state = AgentState::default();
         for i in 0..50 {
-            state.append_message(&format!(
-                "Message content for token check benchmark iteration {i}"
-            ));
+            state.append_message(&format!("Message content for token check benchmark iteration {i}"));
         }
         b.iter(|| {
             let over = state.is_over_token_limit();
@@ -69,9 +67,7 @@ fn bench_isa_creation(c: &mut Criterion) {
                 acceptance_criteria: vec![AcceptanceCriterion {
                     id: "c1".into(),
                     description: "first criterion".into(),
-                    verification_method: VerificationMethod::ShellCommand {
-                        command: "ls".into(),
-                    },
+                    verification_method: VerificationMethod::ShellCommand { command: "ls".into() },
                 }],
                 constraints: vec![],
                 expected_artifacts: vec![],
@@ -111,16 +107,15 @@ fn bench_isa_validate_criteria(c: &mut Criterion) {
                 }
                 for criterion in &isa.acceptance_criteria {
                     let is_valid = match &criterion.verification_method {
-                        VerificationMethod::ShellCommand { command }
-                        | VerificationMethod::LintCheck { command } => !command.trim().is_empty(),
+                        VerificationMethod::ShellCommand { command } | VerificationMethod::LintCheck { command } => {
+                            !command.trim().is_empty()
+                        }
                         VerificationMethod::TestCase { test_name } => !test_name.trim().is_empty(),
                         VerificationMethod::FileExists { path } => !path.trim().is_empty(),
                         VerificationMethod::FileMatches { path, pattern } => {
                             !path.trim().is_empty() && !pattern.trim().is_empty()
                         }
-                        VerificationMethod::HumanConfirmation { prompt } => {
-                            !prompt.trim().is_empty()
-                        }
+                        VerificationMethod::HumanConfirmation { prompt } => !prompt.trim().is_empty(),
                     };
                     if !is_valid {
                         return Err(format!("invalid: {}", criterion.id));

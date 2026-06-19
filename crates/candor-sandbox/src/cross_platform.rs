@@ -155,17 +155,13 @@ impl CircuitBreaker {
 
     /// Record a successful call.
     pub fn record_success(&self) {
-        self.failure_count
-            .store(0, std::sync::atomic::Ordering::SeqCst);
+        self.failure_count.store(0, std::sync::atomic::Ordering::SeqCst);
         self.state.store(0, std::sync::atomic::Ordering::SeqCst);
     }
 
     /// Record a failed call.
     pub fn record_failure(&self) {
-        let count = self
-            .failure_count
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-            + 1;
+        let count = self.failure_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
         if let Ok(mut guard) = self.last_failure.lock() {
             *guard = Some(std::time::Instant::now());
         }
@@ -225,11 +221,7 @@ impl Backoff {
 // ── Retry with Backoff ──
 
 /// Execute an async operation with exponential backoff retry.
-pub async fn with_retry<F, Fut, T>(
-    max_attempts: u32,
-    backoff: &mut Backoff,
-    mut f: F,
-) -> Result<T, CoreError>
+pub async fn with_retry<F, Fut, T>(max_attempts: u32, backoff: &mut Backoff, mut f: F) -> Result<T, CoreError>
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<Output = Result<T, CoreError>>,

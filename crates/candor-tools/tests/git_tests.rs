@@ -3,10 +3,7 @@ use candor_tools::registry::{Tool, ToolContext};
 use candor_tools::{GitBranchTool, GitCommitTool, GitPushTool, GitStatusTool};
 fn make_ctx() -> ToolContext {
     ToolContext {
-        workdir: std::env::current_dir()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        workdir: std::env::current_dir().unwrap().to_string_lossy().to_string(),
         project_id: "test".into(),
     }
 }

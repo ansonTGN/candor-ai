@@ -5,6 +5,10 @@ edition.workspace = true
 description = "12 agent tools: file I/O, search, shell, test, git (sentinel-gated)"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

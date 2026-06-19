@@ -5,6 +5,10 @@ edition.workspace = true
 description = "Deterministic guardrails: 6 rules + 10 doctrine principles for agent safety"
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 candor-core = { workspace = true }

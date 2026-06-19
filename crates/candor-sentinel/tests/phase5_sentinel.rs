@@ -12,11 +12,7 @@ use candor_sentinel::rules::{check_conventional_commit, enforce_deterministic_ru
 
 #[tokio::test]
 async fn test_sentinel_is_before_tool_callback() {
-    let cog = Arc::new(
-        candor_cognitive::CognitiveEngine::new(None, None)
-            .await
-            .unwrap(),
-    );
+    let cog = Arc::new(candor_cognitive::CognitiveEngine::new(None, None).await.unwrap());
     let mut sentinel = SentinelInterceptor::new(cog, vec![]);
     sentinel.deactivate(); // semantic audit needs real LLM — testing trait impl only
     let action = AgentAction {
@@ -31,8 +27,7 @@ async fn test_sentinel_is_before_tool_callback() {
     };
     let state = Arc::new(Mutex::new(AgentState::default()));
     // Call via the BeforeToolCallback trait
-    let result =
-        candor_graph::hooks::BeforeToolCallback::before_tool(&sentinel, &action, state).await;
+    let result = candor_graph::hooks::BeforeToolCallback::before_tool(&sentinel, &action, state).await;
     assert!(result.is_ok());
 }
 
@@ -42,12 +37,7 @@ async fn test_sentinel_is_before_tool_callback() {
 fn test_blocks_force_push() {
     let check = enforce_deterministic_rules("git push --force origin main", &["git".into()]);
     assert!(!check.passed);
-    assert!(
-        check
-            .violations
-            .iter()
-            .any(|v| v.rule.contains("force-push"))
-    );
+    assert!(check.violations.iter().any(|v| v.rule.contains("force-push")));
 }
 
 #[test]
@@ -73,18 +63,14 @@ fn test_blocks_rm_rf() {
 
 #[test]
 fn test_blocks_dead_code() {
-    let check =
-        enforce_deterministic_rules("if false { unreachable!(\"never\"); }", &["code".into()]);
+    let check = enforce_deterministic_rules("if false { unreachable!(\"never\"); }", &["code".into()]);
     assert!(!check.passed);
 }
 
 #[test]
 fn test_passes_clean_code() {
     // Scope-lock checks that valid_scopes appear in the payload
-    let check = enforce_deterministic_rules(
-        "fn add_code(a: i32, b: i32) -> i32 { a + b }",
-        &["add_code".into()],
-    );
+    let check = enforce_deterministic_rules("fn add_code(a: i32, b: i32) -> i32 { a + b }", &["add_code".into()]);
     assert!(check.passed);
 }
 

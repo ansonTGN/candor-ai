@@ -36,19 +36,11 @@ async fn test_memory_different_projects_isolated() {
     let memory = create_memory().await;
 
     memory
-        .store_memory(
-            "project-a".into(),
-            "project-a-data".into(),
-            make_embedding(0.5),
-        )
+        .store_memory("project-a".into(), "project-a-data".into(), make_embedding(0.5))
         .await
         .unwrap();
     memory
-        .store_memory(
-            "project-b".into(),
-            "project-b-data".into(),
-            make_embedding(0.5),
-        )
+        .store_memory("project-b".into(), "project-b-data".into(), make_embedding(0.5))
         .await
         .unwrap();
 
@@ -70,35 +62,21 @@ async fn test_memory_delete_project_memories() {
     let memory = create_memory().await;
 
     memory
-        .store_memory(
-            "project-to-delete".into(),
-            "data1".into(),
-            make_embedding(0.5),
-        )
+        .store_memory("project-to-delete".into(), "data1".into(), make_embedding(0.5))
         .await
         .unwrap();
     memory
-        .store_memory(
-            "project-to-delete".into(),
-            "data2".into(),
-            make_embedding(0.5),
-        )
+        .store_memory("project-to-delete".into(), "data2".into(), make_embedding(0.5))
         .await
         .unwrap();
 
-    memory
-        .delete_project_memories("project-to-delete")
-        .await
-        .unwrap();
+    memory.delete_project_memories("project-to-delete").await.unwrap();
 
     let results = memory
         .retrieve_context("project-to-delete", make_embedding(0.5), 5)
         .await
         .unwrap();
-    assert!(
-        results.is_empty(),
-        "Deleted project should have no memories"
-    );
+    assert!(results.is_empty(), "Deleted project should have no memories");
 }
 
 #[tokio::test]
@@ -106,12 +84,7 @@ async fn test_memory_execution_log_storage() {
     let memory = create_memory().await;
 
     memory
-        .store_execution_log(
-            "session-1",
-            "think",
-            "analyze_input",
-            "Thought about the input",
-        )
+        .store_execution_log("session-1", "think", "analyze_input", "Thought about the input")
         .await
         .unwrap();
 
@@ -120,10 +93,7 @@ async fn test_memory_execution_log_storage() {
         .await
         .unwrap();
 
-    let logs = memory
-        .get_execution_logs_by_session("session-1")
-        .await
-        .unwrap();
+    let logs = memory.get_execution_logs_by_session("session-1").await.unwrap();
     assert_eq!(logs.len(), 2, "Should find 2 execution log entries");
     assert!(logs.iter().any(|l| l.phase == "think"));
     assert!(logs.iter().any(|l| l.phase == "execute"));
@@ -149,10 +119,7 @@ async fn test_memory_schema_init_idempotent() {
         .await
         .unwrap();
 
-    let results = memory
-        .retrieve_context("test", make_embedding(0.5), 5)
-        .await
-        .unwrap();
+    let results = memory.retrieve_context("test", make_embedding(0.5), 5).await.unwrap();
     assert_eq!(results.len(), 2, "Both stores should persist");
 }
 
@@ -176,9 +143,6 @@ async fn test_memory_store_large_content() {
         .await
         .unwrap();
 
-    let results = memory
-        .retrieve_context("test", make_embedding(0.5), 5)
-        .await
-        .unwrap();
+    let results = memory.retrieve_context("test", make_embedding(0.5), 5).await.unwrap();
     assert!(results.iter().any(|c| c.len() == 10_000));
 }

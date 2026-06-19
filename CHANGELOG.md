@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Publishing & CI
+- All 11 crates published to crates.io (candor-core, candor-graph, candor-sandbox, candor-cognitive, candor-memory, candor-sentinel, candor-orchestrator, candor-tools, candor-mcp, candor-telemetry, candor-ai)
+- `cargo install candor-ai` verified working — single 57MB binary install
+- release.yml: added `workflow_dispatch` trigger for manual publish
+- release.yml: publish step now uses `CARGO_REGISTRY_TOKEN` secret
+- README: version badge replaced with dynamic crates.io badge
+- Verified: `candor --version` returns `candor 1.0.0`
+
 ## [1.0.0] — 2026-05-29
 
 ### Production Release — Full Design Doc Implementation

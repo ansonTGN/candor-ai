@@ -271,10 +271,7 @@ pub async fn read_da_identity() -> Result<String, PdaError> {
 /// Write a memory note to MEMORY/LEARNING/<slug>.md with git auto-commit.
 #[allow(dead_code)]
 pub async fn write_learning(slug: &str, content: &str) -> Result<(), PdaError> {
-    let path = pda_home()
-        .join("MEMORY")
-        .join("LEARNING")
-        .join(format!("{slug}.md"));
+    let path = pda_home().join("MEMORY").join("LEARNING").join(format!("{slug}.md"));
     tokio::fs::write(&path, content).await?;
     auto_commit(&format!("learn: {slug}")).await?;
     Ok(())
@@ -283,10 +280,7 @@ pub async fn write_learning(slug: &str, content: &str) -> Result<(), PdaError> {
 /// Write a knowledge entity to MEMORY/KNOWLEDGE/<slug>.md with git auto-commit.
 #[allow(dead_code)]
 pub async fn write_knowledge(slug: &str, entity_type: &str, content: &str) -> Result<(), PdaError> {
-    let path = pda_home()
-        .join("MEMORY")
-        .join("KNOWLEDGE")
-        .join(format!("{slug}.md"));
+    let path = pda_home().join("MEMORY").join("KNOWLEDGE").join(format!("{slug}.md"));
     let frontmatter = format!(
         "---\ntype: {entity_type}\ncreated: {created}\n---\n\n{content}",
         created = chrono::Utc::now().to_rfc3339()
@@ -391,26 +385,13 @@ pub async fn status() -> Result<String, PdaError> {
 
     let mut report = String::new();
     report.push_str(&format!("PDA Home: {}\n", home.display()));
-    report.push_str(&format!(
-        "Initialized: {}\n",
-        if exists { "✅" } else { "❌" }
-    ));
+    report.push_str(&format!("Initialized: {}\n", if exists { "✅" } else { "❌" }));
 
     if exists {
-        let identity = tokio::fs::try_exists(identity_path())
-            .await
-            .unwrap_or(false);
-        let da = tokio::fs::try_exists(da_identity_path())
-            .await
-            .unwrap_or(false);
-        report.push_str(&format!(
-            "IDENTITY.md: {}\n",
-            if identity { "✅" } else { "❌" }
-        ));
-        report.push_str(&format!(
-            "DA_IDENTITY.md: {}\n",
-            if da { "✅" } else { "❌" }
-        ));
+        let identity = tokio::fs::try_exists(identity_path()).await.unwrap_or(false);
+        let da = tokio::fs::try_exists(da_identity_path()).await.unwrap_or(false);
+        report.push_str(&format!("IDENTITY.md: {}\n", if identity { "✅" } else { "❌" }));
+        report.push_str(&format!("DA_IDENTITY.md: {}\n", if da { "✅" } else { "❌" }));
 
         let work_count = list_work().await?.len();
         report.push_str(&format!("Work sessions: {work_count}\n"));
@@ -610,14 +591,8 @@ mod tests {
     async fn test_write_learning() {
         with_pda(|tmp| async move {
             init().await.unwrap();
-            write_learning("test-pat", "Learned something")
-                .await
-                .unwrap();
-            let f = tmp
-                .join(".candor")
-                .join("MEMORY")
-                .join("LEARNING")
-                .join("test-pat.md");
+            write_learning("test-pat", "Learned something").await.unwrap();
+            let f = tmp.join(".candor").join("MEMORY").join("LEARNING").join("test-pat.md");
             assert!(f.exists());
             assert!(
                 tokio::fs::read_to_string(f)
@@ -633,14 +608,8 @@ mod tests {
     async fn test_write_knowledge() {
         with_pda(|tmp| async move {
             init().await.unwrap();
-            write_knowledge("entity", "Idea", "great idea")
-                .await
-                .unwrap();
-            let f = tmp
-                .join(".candor")
-                .join("MEMORY")
-                .join("KNOWLEDGE")
-                .join("entity.md");
+            write_knowledge("entity", "Idea", "great idea").await.unwrap();
+            let f = tmp.join(".candor").join("MEMORY").join("KNOWLEDGE").join("entity.md");
             assert!(f.exists());
             let c = tokio::fs::read_to_string(f).await.unwrap();
             assert!(c.contains("type: Idea"));
@@ -661,10 +630,7 @@ mod tests {
                 .unwrap();
             let log = String::from_utf8_lossy(&out.stdout);
             assert!(!log.is_empty(), "git log should have entries");
-            assert!(
-                log.contains("learn:"),
-                "git log should contain learn commit: {log}"
-            );
+            assert!(log.contains("learn:"), "git log should contain learn commit: {log}");
         })
         .await;
     }
@@ -672,10 +638,6 @@ mod tests {
     #[test]
     fn test_pda_home_ends_with_candor() {
         let h = pda_home();
-        assert!(
-            h.to_string_lossy().ends_with(".candor"),
-            "got: {}",
-            h.display()
-        );
+        assert!(h.to_string_lossy().ends_with(".candor"), "got: {}", h.display());
     }
 }

@@ -86,11 +86,7 @@ pub fn check_narration_comments(lines: &[&str]) -> Vec<RuleViolation> {
             if comment_text.contains(pattern) {
                 violations.push(RuleViolation {
                     rule: "ast:narration-comment".into(),
-                    description: format!(
-                        "AI narration comment at line {}: matches pattern '{}'",
-                        i + 1,
-                        pattern
-                    ),
+                    description: format!("AI narration comment at line {}: matches pattern '{}'", i + 1, pattern),
                     severity: ViolationSeverity::Warning,
                 });
                 break; // One violation per comment line

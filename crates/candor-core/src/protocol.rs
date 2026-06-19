@@ -34,10 +34,7 @@ impl AgentAction {
     pub fn is_destructive(&self) -> bool {
         matches!(
             self.action_type,
-            ActionType::FileDelete
-                | ActionType::ForcePush
-                | ActionType::ShellCommand
-                | ActionType::DatabaseWrite
+            ActionType::FileDelete | ActionType::ForcePush | ActionType::ShellCommand | ActionType::DatabaseWrite
         ) || !self.is_reversible
     }
 }

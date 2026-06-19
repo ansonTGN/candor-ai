@@ -61,7 +61,7 @@ candor-ai/
 │   ├── candor-tools/       # Tool definitions (fs, git, shell, search, test)
 │   ├── candor-mcp/         # MCP protocol integration
 │   ├── candor-telemetry/   # Observability & metrics
-│   └── candor-daemon/      # Background daemon
+│   # candor-daemon — planned but not yet implemented
 └── desktop/                # Tauri desktop app
 ```
 

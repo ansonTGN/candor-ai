@@ -28,17 +28,11 @@ impl Tool for ShellTool {
     async fn execute(&self, _ctx: &ToolContext, args: &[String]) -> Result<ToolOutput, CoreError> {
         let command = args.join(" ");
         if command.is_empty() {
-            return Err(CoreError::Internal(
-                "shell requires a command argument".into(),
-            ));
+            return Err(CoreError::Internal("shell requires a command argument".into()));
         }
 
         info!(command = %command, "Executing in sandbox");
-        match self
-            .sandbox
-            .execute_tool(&command, ExecLanguage::Shell)
-            .await
-        {
+        match self.sandbox.execute_tool(&command, ExecLanguage::Shell).await {
             Ok(output) => Ok(ToolOutput::ok(output)),
             Err(e) => Ok(ToolOutput::err(format!("Command failed: {e}"))),
         }

@@ -166,9 +166,7 @@ pub async fn record_audio() -> Result<PathBuf, SttError> {
         .unwrap_or(5);
 
     let tmp_dir = std::env::temp_dir().join("candor-stt");
-    tokio::fs::create_dir_all(&tmp_dir)
-        .await
-        .map_err(SttError::Io)?;
+    tokio::fs::create_dir_all(&tmp_dir).await.map_err(SttError::Io)?;
 
     let wav_path = tmp_dir.join(format!("voice_{}.wav", chrono::Utc::now().timestamp()));
 
@@ -193,10 +191,7 @@ pub async fn record_audio() -> Result<PathBuf, SttError> {
         .map_err(|e| SttError::Mic(format!("arecord not found: {e}")))?;
 
     if !status.success() {
-        return Err(SttError::Mic(format!(
-            "arecord failed (exit code {:?})",
-            status.code()
-        )));
+        return Err(SttError::Mic(format!("arecord failed (exit code {:?})", status.code())));
     }
 
     if !wav_path.exists() {

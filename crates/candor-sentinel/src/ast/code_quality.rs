@@ -58,10 +58,7 @@ pub fn check_single_use_helpers(
 
 /// Check for over-abstraction: function whose body is just a single
 /// call to another function (thin wrapper with no added logic).
-pub fn check_over_abstraction(
-    fn_defs: &HashMap<String, Vec<usize>>,
-    lines: &[&str],
-) -> Vec<RuleViolation> {
+pub fn check_over_abstraction(fn_defs: &HashMap<String, Vec<usize>>, lines: &[&str]) -> Vec<RuleViolation> {
     let mut violations = Vec::new();
 
     for (name, def_lines) in fn_defs {
@@ -106,7 +103,9 @@ pub fn check_over_abstraction(
                                 rule: "ast:over-abstraction".into(),
                                 description: format!(
                                     "Function `{}` (line {}) is a thin wrapper around `{}` — inline it",
-                                    name, def_line + 1, called_name
+                                    name,
+                                    def_line + 1,
+                                    called_name
                                 ),
                                 severity: ViolationSeverity::Warning,
                             });
@@ -210,8 +209,7 @@ pub fn check_if_else_chains(lines: &[&str]) -> Vec<RuleViolation> {
                 // Track brace depth
                 brace_depth += count_opening_braces(l) - count_closing_braces(l);
                 let has_else_if = l.contains("else if");
-                let has_else_block =
-                    (l.contains("else {") || l.contains("else{")) && !l.contains("else if");
+                let has_else_block = (l.contains("else {") || l.contains("else{")) && !l.contains("else if");
 
                 if has_else_if && !has_else_block {
                     // We should only count a new branch if the else-if starts at the
@@ -239,7 +237,8 @@ pub fn check_if_else_chains(lines: &[&str]) -> Vec<RuleViolation> {
                     rule: "ast:if-else-chain".into(),
                     description: format!(
                         "Long if-else chain with {} branches starting at line {} — consider `match`",
-                        chain_len, start + 1
+                        chain_len,
+                        start + 1
                     ),
                     severity: ViolationSeverity::Warning,
                 });
@@ -292,11 +291,7 @@ fn main() {
             .iter()
             .filter(|v| v.rule == "ast:single-use-helper")
             .collect();
-        assert_eq!(
-            single_use.len(),
-            1,
-            "Should detect single-use helper function"
-        );
+        assert_eq!(single_use.len(), 1, "Should detect single-use helper function");
         assert!(single_use[0].description.contains("helper_parse_token"));
     }
 
@@ -326,10 +321,7 @@ fn another_thin_wrapper(a: i32) -> i32 {
         }
 
         let violations = check_over_abstraction(&fn_defs, &lines);
-        let wrappers: Vec<_> = violations
-            .iter()
-            .filter(|v| v.rule == "ast:over-abstraction")
-            .collect();
+        let wrappers: Vec<_> = violations.iter().filter(|v| v.rule == "ast:over-abstraction").collect();
         assert_eq!(wrappers.len(), 2, "Should detect both thin wrappers");
     }
 
@@ -354,10 +346,7 @@ fn example() {
                 });
             }
         }
-        assert!(
-            !violations.is_empty(),
-            "Should detect unreachable code after return"
-        );
+        assert!(!violations.is_empty(), "Should detect unreachable code after return");
     }
 
     #[test]
@@ -379,10 +368,7 @@ fn classify(value: i32) -> &'static str {
 "#;
         let lines: Vec<&str> = source.lines().collect();
         let violations = check_if_else_chains(&lines);
-        let chains: Vec<_> = violations
-            .iter()
-            .filter(|v| v.rule == "ast:if-else-chain")
-            .collect();
+        let chains: Vec<_> = violations.iter().filter(|v| v.rule == "ast:if-else-chain").collect();
         assert!(
             !chains.is_empty(),
             "Should detect long if-else chain, got: {:?}",
@@ -405,10 +391,7 @@ fn classify(value: i32) -> &'static str {
 "#;
         let lines: Vec<&str> = source.lines().collect();
         let violations = check_if_else_chains(&lines);
-        let chains: Vec<_> = violations
-            .iter()
-            .filter(|v| v.rule == "ast:if-else-chain")
-            .collect();
+        let chains: Vec<_> = violations.iter().filter(|v| v.rule == "ast:if-else-chain").collect();
         assert!(
             chains.is_empty(),
             "Short if-else chain (2 branches) should not be flagged"
@@ -450,10 +433,7 @@ fn main() {
         }
 
         let violations = check_single_use_helpers(&fn_defs, &fn_calls, &lines);
-        let unused: Vec<_> = violations
-            .iter()
-            .filter(|v| v.rule == "ast:unused-function")
-            .collect();
+        let unused: Vec<_> = violations.iter().filter(|v| v.rule == "ast:unused-function").collect();
         assert_eq!(unused.len(), 1, "Should detect one unused function");
         assert!(unused[0].description.contains("helper_internal"));
     }
@@ -477,9 +457,6 @@ return;
         .lines()
         .collect();
         let result = has_unreachable_after(&lines, 1);
-        assert!(
-            result.is_none(),
-            "Empty line after return should not be flagged"
-        );
+        assert!(result.is_none(), "Empty line after return should not be flagged");
     }
 }

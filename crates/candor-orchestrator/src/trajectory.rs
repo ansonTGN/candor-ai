@@ -35,10 +35,7 @@ impl TrajectoryEntry {
 }
 
 /// Append a trajectory entry to a JSONL file.
-pub async fn append_to_jsonl(
-    entry: &TrajectoryEntry,
-    jsonl_path: &PathBuf,
-) -> Result<(), CoreError> {
+pub async fn append_to_jsonl(entry: &TrajectoryEntry, jsonl_path: &PathBuf) -> Result<(), CoreError> {
     if let Some(parent) = jsonl_path.parent() {
         tokio::fs::create_dir_all(parent)
             .await
@@ -138,8 +135,7 @@ impl LoRAPipeline {
         });
 
         let config_path = self.output_dir.join("lora_pipeline_config.json");
-        let json = serde_json::to_string_pretty(&config)
-            .map_err(|e| CoreError::Serialization(e.to_string()))?;
+        let json = serde_json::to_string_pretty(&config).map_err(|e| CoreError::Serialization(e.to_string()))?;
 
         tokio::fs::write(&config_path, json)
             .await
@@ -174,8 +170,7 @@ mod tests {
         let path = dir.path().join("trajectories.jsonl");
 
         for i in 0..5 {
-            let entry =
-                TrajectoryEntry::new(&format!("sess-{i}"), "verify", "cargo test", "passed");
+            let entry = TrajectoryEntry::new(&format!("sess-{i}"), "verify", "cargo test", "passed");
             append_to_jsonl(&entry, &path).await.unwrap();
         }
 
@@ -202,19 +197,12 @@ mod tests {
         // Create input file
         tokio::fs::write(&jsonl, "{}").await.unwrap();
 
-        let pipeline = LoRAPipeline::new(
-            jsonl.clone(),
-            dir.path().join("lora_output"),
-            "qwen3-1.5b".into(),
-        );
+        let pipeline = LoRAPipeline::new(jsonl.clone(), dir.path().join("lora_output"), "qwen3-1.5b".into());
 
         assert!(pipeline.validate().unwrap());
         pipeline.provision().await.unwrap();
 
-        let config_path = dir
-            .path()
-            .join("lora_output")
-            .join("lora_pipeline_config.json");
+        let config_path = dir.path().join("lora_output").join("lora_pipeline_config.json");
         assert!(config_path.exists());
     }
 

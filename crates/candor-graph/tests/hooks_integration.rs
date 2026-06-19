@@ -5,9 +5,7 @@ use tokio::sync::Mutex;
 use candor_core::error::CoreError;
 use candor_core::protocol::AgentAction;
 use candor_core::state::AgentState;
-use candor_graph::hooks::{
-    AfterToolCallback, BeforeToolCallback, CompletionCallback, LifecycleHooks,
-};
+use candor_graph::hooks::{AfterToolCallback, BeforeToolCallback, CompletionCallback, LifecycleHooks};
 use candor_graph::node::AgentNode;
 use candor_graph::runner::GraphRunner;
 
@@ -48,13 +46,8 @@ impl CountingHook {
 
 #[async_trait::async_trait]
 impl BeforeToolCallback for CountingHook {
-    async fn before_tool(
-        &self,
-        _action: &AgentAction,
-        _state: Arc<Mutex<AgentState>>,
-    ) -> Result<(), CoreError> {
-        self.call_count
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    async fn before_tool(&self, _action: &AgentAction, _state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
+        self.call_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 }
@@ -67,8 +60,7 @@ impl AfterToolCallback for CountingHook {
         _result: &str,
         _state: Arc<Mutex<AgentState>>,
     ) -> Result<(), CoreError> {
-        self.call_count
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.call_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 }
@@ -76,8 +68,7 @@ impl AfterToolCallback for CountingHook {
 #[async_trait::async_trait]
 impl CompletionCallback for CountingHook {
     async fn on_complete(&self, _state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
-        self.call_count
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.call_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 }
@@ -110,11 +101,7 @@ async fn test_before_tool_hook_rejects_action() {
 
     #[async_trait::async_trait]
     impl BeforeToolCallback for RejectingHook {
-        async fn before_tool(
-            &self,
-            _action: &AgentAction,
-            _state: Arc<Mutex<AgentState>>,
-        ) -> Result<(), CoreError> {
+        async fn before_tool(&self, _action: &AgentAction, _state: Arc<Mutex<AgentState>>) -> Result<(), CoreError> {
             Err(CoreError::SentinelPolicyViolation("rejected".into()))
         }
     }

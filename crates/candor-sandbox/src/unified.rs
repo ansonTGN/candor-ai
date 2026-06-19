@@ -80,11 +80,7 @@ impl ToolSandbox {
     /// WASM requests go through the capability-based wasmtime sandbox.
     /// All other languages go through the OS-level process sandbox.
     #[instrument(skip(self))]
-    pub async fn execute_tool(
-        &self,
-        code: &str,
-        language: ExecLanguage,
-    ) -> Result<String, CoreError> {
+    pub async fn execute_tool(&self, code: &str, language: ExecLanguage) -> Result<String, CoreError> {
         info!(
             language = ?language,
             "Executing tool in unified sandbox boundary"
@@ -104,10 +100,7 @@ impl ToolSandbox {
 
         match result {
             Ok(output) if output.exit_code == 0 => Ok(output.stdout),
-            Ok(output) => Err(CoreError::Internal(format!(
-                "Execution trap: {}",
-                output.stderr
-            ))),
+            Ok(output) => Err(CoreError::Internal(format!("Execution trap: {}", output.stderr))),
             Err(e) => {
                 if e.to_string().contains("timeout") || e.to_string().contains("Timed out") {
                     Err(CoreError::Internal("Resource exhausted: timeout".into()))
@@ -122,9 +115,10 @@ impl ToolSandbox {
     pub async fn execute(&self, request: &ExecRequest) -> Result<ExecResult, CoreError> {
         match request.language {
             ExecLanguage::Wasm => {
-                let wasm_path = request.wasm_path.as_ref().ok_or_else(|| {
-                    CoreError::Internal("wasm_path required for WASM language execution".into())
-                })?;
+                let wasm_path = request
+                    .wasm_path
+                    .as_ref()
+                    .ok_or_else(|| CoreError::Internal("wasm_path required for WASM language execution".into()))?;
 
                 let wasm_req = WasmExecRequest {
                     wasm_path: wasm_path.clone(),

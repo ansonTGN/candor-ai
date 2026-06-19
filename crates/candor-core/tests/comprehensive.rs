@@ -3,8 +3,7 @@ use std::collections::HashMap;
 
 use candor_core::error::CoreError;
 use candor_core::ideal::{
-    AcceptanceCriterion, ArtifactType, ConstraintEnforcement, IdealStateArtifact,
-    VerificationMethod,
+    AcceptanceCriterion, ArtifactType, ConstraintEnforcement, IdealStateArtifact, VerificationMethod,
 };
 use candor_core::protocol::{ActionType, AgentAction};
 use candor_core::state::AgentState;
@@ -207,9 +206,7 @@ fn test_isa_missing_results_treated_as_false() {
 #[test]
 fn test_verification_method_serde() {
     let methods = [
-        VerificationMethod::ShellCommand {
-            command: "ls".into(),
-        },
+        VerificationMethod::ShellCommand { command: "ls".into() },
         VerificationMethod::TestCase {
             test_name: "my_test".into(),
         },
@@ -223,9 +220,7 @@ fn test_verification_method_serde() {
         VerificationMethod::LintCheck {
             command: "cargo fmt --check".into(),
         },
-        VerificationMethod::HumanConfirmation {
-            prompt: "ok?".into(),
-        },
+        VerificationMethod::HumanConfirmation { prompt: "ok?".into() },
     ];
     for m in &methods {
         let json = serde_json::to_string(m).unwrap();
@@ -241,9 +236,7 @@ fn test_artifact_type_variants() {
         ArtifactType::MarkdownDocument,
         ArtifactType::Commit,
         ArtifactType::BinaryOutput,
-        ArtifactType::Other {
-            kind: "config".into(),
-        },
+        ArtifactType::Other { kind: "config".into() },
     ];
     for t in &types {
         let json = serde_json::to_string(t).unwrap();
@@ -272,9 +265,7 @@ fn make_isa() -> IdealStateArtifact {
             AcceptanceCriterion {
                 id: "c1".into(),
                 description: "works".into(),
-                verification_method: VerificationMethod::ShellCommand {
-                    command: "true".into(),
-                },
+                verification_method: VerificationMethod::ShellCommand { command: "true".into() },
             },
             AcceptanceCriterion {
                 id: "c2".into(),

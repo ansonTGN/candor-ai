@@ -101,12 +101,7 @@ impl WasmBackend {
         // Get the requested function.
         let func = instance
             .get_func(&mut store, &request.function)
-            .ok_or_else(|| {
-                CoreError::Internal(format!(
-                    "Function '{}' not found in WASM module",
-                    request.function
-                ))
-            })?;
+            .ok_or_else(|| CoreError::Internal(format!("Function '{}' not found in WASM module", request.function)))?;
 
         // Call the function.
         let mut result = [wasmtime::Val::I32(0)];

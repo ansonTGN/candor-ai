@@ -13,11 +13,7 @@ pub fn find_on_path(name: &str) -> Option<PathBuf> {
                 Some(full)
             } else {
                 let with_ext = dir.join(format!("{}.exe", name));
-                if with_ext.is_file() {
-                    Some(with_ext)
-                } else {
-                    None
-                }
+                if with_ext.is_file() { Some(with_ext) } else { None }
             }
         })
     })

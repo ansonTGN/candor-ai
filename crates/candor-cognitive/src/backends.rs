@@ -22,9 +22,7 @@ impl LlmRequest {
     pub fn validate(&self) -> Result<(), CoreError> {
         let approx_tokens = self.prompt.len() / 4;
         if approx_tokens > 128_000 {
-            return Err(CoreError::Internal(
-                "Prompt exceeds 128K token limit".into(),
-            ));
+            return Err(CoreError::Internal("Prompt exceeds 128K token limit".into()));
         }
         Ok(())
     }
@@ -87,10 +85,7 @@ impl LlmBackend for MockBackend {
 // ── Helper: circuit-breaker-protected HTTP call ──
 
 /// Wraps an API call with circuit breaker + exponential backoff retry.
-async fn call_with_protection<F, Fut>(
-    cb: &CircuitBreaker,
-    f: F,
-) -> Result<reqwest::Response, CoreError>
+async fn call_with_protection<F, Fut>(cb: &CircuitBreaker, f: F) -> Result<reqwest::Response, CoreError>
 where
     F: Fn() -> Fut,
     Fut: std::future::Future<Output = Result<reqwest::Response, CoreError>>,
@@ -130,11 +125,7 @@ impl std::fmt::Debug for OpenAiBackend {
 }
 
 impl OpenAiBackend {
-    pub fn new(
-        api_key: String,
-        model: impl Into<String>,
-        base_url: Option<String>,
-    ) -> Result<Self, CoreError> {
+    pub fn new(api_key: String, model: impl Into<String>, base_url: Option<String>) -> Result<Self, CoreError> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
             .build()
@@ -160,10 +151,7 @@ impl LlmBackend for OpenAiBackend {
 
     async fn generate(&self, request: &LlmRequest) -> Result<LlmResponse, CoreError> {
         let start = Instant::now();
-        let model = request
-            .model_override
-            .clone()
-            .unwrap_or_else(|| self.model.clone());
+        let model = request.model_override.clone().unwrap_or_else(|| self.model.clone());
         let body = serde_json::json!({
             "model": model, "messages": [{"role": "user", "content": request.prompt}],
             "max_tokens": request.max_tokens.unwrap_or(1024),
@@ -189,9 +177,7 @@ impl LlmBackend for OpenAiBackend {
                     let status = r.status();
                     let body = r.text().await.unwrap_or_default();
                     warn!(%status, %body, "OpenAI API error");
-                    return Err(CoreError::Internal(format!(
-                        "OpenAI API error {status}: {body}"
-                    )));
+                    return Err(CoreError::Internal(format!("OpenAI API error {status}: {body}")));
                 }
                 Ok(r)
             }
@@ -207,9 +193,7 @@ impl LlmBackend for OpenAiBackend {
             .unwrap_or("")
             .to_string();
         let pt = json["usage"]["prompt_tokens"].as_u64().map(|v| v as u32);
-        let ct = json["usage"]["completion_tokens"]
-            .as_u64()
-            .map(|v| v as u32);
+        let ct = json["usage"]["completion_tokens"].as_u64().map(|v| v as u32);
         Ok(LlmResponse {
             text,
             prompt_tokens: pt,
@@ -264,10 +248,7 @@ impl LlmBackend for AnthropicBackend {
 
     async fn generate(&self, request: &LlmRequest) -> Result<LlmResponse, CoreError> {
         let start = Instant::now();
-        let model = request
-            .model_override
-            .clone()
-            .unwrap_or_else(|| self.model.clone());
+        let model = request.model_override.clone().unwrap_or_else(|| self.model.clone());
         let body = serde_json::json!({
             "model": model, "max_tokens": request.max_tokens.unwrap_or(1024),
             "messages": [{"role": "user", "content": request.prompt}],
@@ -292,9 +273,7 @@ impl LlmBackend for AnthropicBackend {
                     let status = r.status();
                     let body = r.text().await.unwrap_or_default();
                     warn!(%status, %body, "Anthropic API error");
-                    return Err(CoreError::Internal(format!(
-                        "Anthropic API error {status}: {body}"
-                    )));
+                    return Err(CoreError::Internal(format!("Anthropic API error {status}: {body}")));
                 }
                 Ok(r)
             }
@@ -305,10 +284,7 @@ impl LlmBackend for AnthropicBackend {
             .json()
             .await
             .map_err(|e| CoreError::Internal(format!("Parse failed: {e}")))?;
-        let text = json["content"][0]["text"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
+        let text = json["content"][0]["text"].as_str().unwrap_or("").to_string();
         let pt = json["usage"]["input_tokens"].as_u64().map(|v| v as u32);
         let ct = json["usage"]["output_tokens"].as_u64().map(|v| v as u32);
         Ok(LlmResponse {
@@ -365,10 +341,7 @@ impl LlmBackend for DeepSeekBackend {
 
     async fn generate(&self, request: &LlmRequest) -> Result<LlmResponse, CoreError> {
         let start = Instant::now();
-        let model = request
-            .model_override
-            .clone()
-            .unwrap_or_else(|| self.model.clone());
+        let model = request.model_override.clone().unwrap_or_else(|| self.model.clone());
         let body = serde_json::json!({
             "model": model, "messages": [{"role": "user", "content": request.prompt}],
             "max_tokens": request.max_tokens.unwrap_or(1024),
@@ -392,9 +365,7 @@ impl LlmBackend for DeepSeekBackend {
                     let status = r.status();
                     let body = r.text().await.unwrap_or_default();
                     warn!(%status, %body, "DeepSeek API error");
-                    return Err(CoreError::Internal(format!(
-                        "DeepSeek API error {status}: {body}"
-                    )));
+                    return Err(CoreError::Internal(format!("DeepSeek API error {status}: {body}")));
                 }
                 Ok(r)
             }
@@ -410,9 +381,7 @@ impl LlmBackend for DeepSeekBackend {
             .unwrap_or("")
             .to_string();
         let pt = json["usage"]["prompt_tokens"].as_u64().map(|v| v as u32);
-        let ct = json["usage"]["completion_tokens"]
-            .as_u64()
-            .map(|v| v as u32);
+        let ct = json["usage"]["completion_tokens"].as_u64().map(|v| v as u32);
         Ok(LlmResponse {
             text,
             prompt_tokens: pt,
@@ -467,10 +436,7 @@ impl LlmBackend for GeminiBackend {
 
     async fn generate(&self, request: &LlmRequest) -> Result<LlmResponse, CoreError> {
         let start = Instant::now();
-        let model = request
-            .model_override
-            .clone()
-            .unwrap_or_else(|| self.model.clone());
+        let model = request.model_override.clone().unwrap_or_else(|| self.model.clone());
         let mut body = serde_json::json!({
             "contents": [{"parts": [{"text": request.prompt}]}],
             "generationConfig": {
@@ -482,9 +448,7 @@ impl LlmBackend for GeminiBackend {
             body["system_instruction"] = serde_json::json!({"parts": [{"text": sp}]});
         }
 
-        let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        );
+        let url = format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent");
 
         let resp = call_with_protection(&self.cb, || {
             let body = body.clone();
@@ -504,9 +468,7 @@ impl LlmBackend for GeminiBackend {
                     let status = r.status();
                     let body = r.text().await.unwrap_or_default();
                     warn!(%status, %body, "Gemini API error");
-                    return Err(CoreError::Internal(format!(
-                        "Gemini API error {status}: {body}"
-                    )));
+                    return Err(CoreError::Internal(format!("Gemini API error {status}: {body}")));
                 }
                 Ok(r)
             }

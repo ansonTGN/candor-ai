@@ -45,10 +45,7 @@ impl Skill {
             .join(", ");
         md.push_str(&format!("  tools: [{}]\n", tools_str));
         md.push_str("---\n\n");
-        md.push_str(&format!(
-            "# {}\n\n",
-            self.name.replace('-', " ").to_uppercase()
-        ));
+        md.push_str(&format!("# {}\n\n", self.name.replace('-', " ").to_uppercase()));
         md.push_str(&format!("{}\n\n", self.description));
         md.push_str("## Steps\n\n");
 
@@ -113,10 +110,7 @@ pub fn extract_skills_from_log(task: &str, log: &[String], tools_used: &[String]
             description: task.to_string(),
             trigger: task.to_string(),
             steps: if steps.is_empty() {
-                vec![
-                    "Execute the build phase".into(),
-                    "Run tests in Verify phase".into(),
-                ]
+                vec!["Execute the build phase".into(), "Run tests in Verify phase".into()]
             } else {
                 steps
             },
@@ -149,10 +143,7 @@ pub async fn persist_skills(skills: &[Skill], skills_dir: &PathBuf) -> Result<us
                 && existing.contains(&skill.description)
             {
                 // Same skill, bump counter
-                let updated = existing.replace(
-                    "use_count: 1",
-                    &format!("use_count: {}", skill.use_count + 1),
-                );
+                let updated = existing.replace("use_count: 1", &format!("use_count: {}", skill.use_count + 1));
                 tokio::fs::write(&path, updated)
                     .await
                     .map_err(|e| CoreError::Io(e.to_string()))?;

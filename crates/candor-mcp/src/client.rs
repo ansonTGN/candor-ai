@@ -87,11 +87,7 @@ impl McpClient {
     }
 
     /// Call a tool on the MCP server.
-    pub async fn call_tool(
-        &self,
-        tool_name: &str,
-        arguments: serde_json::Value,
-    ) -> Result<String, CoreError> {
+    pub async fn call_tool(&self, tool_name: &str, arguments: serde_json::Value) -> Result<String, CoreError> {
         let req = serde_json::json!({
             "jsonrpc": "2.0",
             "id": NEXT_ID.fetch_add(1, Ordering::SeqCst),

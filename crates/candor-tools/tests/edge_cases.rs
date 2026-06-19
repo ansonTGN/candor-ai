@@ -10,10 +10,7 @@ use std::time::Duration;
 
 fn ctx() -> ToolContext {
     ToolContext {
-        workdir: std::env::current_dir()
-            .unwrap()
-            .to_string_lossy()
-            .to_string(),
+        workdir: std::env::current_dir().unwrap().to_string_lossy().to_string(),
         project_id: "test".into(),
     }
 }
@@ -52,10 +49,7 @@ async fn write_file_empty_content() {
         project_id: "test".into(),
     };
     let tool = WriteFileTool;
-    let result = tool
-        .execute(&ctx, &["empty.txt".into(), "".into()])
-        .await
-        .unwrap();
+    let result = tool.execute(&ctx, &["empty.txt".into(), "".into()]).await.unwrap();
     assert!(result.success);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -83,20 +77,14 @@ fn circuit_breaker_half_open_resets() {
     let cb = CircuitBreaker::new(2, Duration::from_millis(1));
     cb.record_failure();
     cb.record_failure();
-    assert_eq!(
-        cb.state(),
-        candor_sandbox::cross_platform::CircuitState::Open
-    );
+    assert_eq!(cb.state(), candor_sandbox::cross_platform::CircuitState::Open);
     // Wait for reset timeout (short enough for test)
     std::thread::sleep(Duration::from_millis(5));
     // After timeout, should transition to half-open on next allow()
     let _ = cb.allow();
     // After half-open, a success resets to closed
     cb.record_success();
-    assert_eq!(
-        cb.state(),
-        candor_sandbox::cross_platform::CircuitState::Closed
-    );
+    assert_eq!(cb.state(), candor_sandbox::cross_platform::CircuitState::Closed);
 }
 
 #[test]
@@ -109,10 +97,7 @@ fn circuit_breaker_allow_succeeds() {
 fn circuit_breaker_single_failure_stays_closed() {
     let cb = CircuitBreaker::new(3, Duration::from_secs(10));
     cb.record_failure();
-    assert_eq!(
-        cb.state(),
-        candor_sandbox::cross_platform::CircuitState::Closed
-    );
+    assert_eq!(cb.state(), candor_sandbox::cross_platform::CircuitState::Closed);
     assert!(cb.allow().is_ok());
 }
 

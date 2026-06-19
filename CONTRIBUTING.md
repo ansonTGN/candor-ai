@@ -73,7 +73,7 @@ Base your branch on `main` (or `master` where applicable).
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/iknowkungfubar/candor-ai.git
+git clone https://github.com/TurinTech-Solutions/candor-ai.git
 cd candor-ai
 cargo build
 ```
@@ -204,7 +204,7 @@ cargo test --workspace
 
 ## Questions?
 
-Open a [Discussion](https://github.com/iknowkungfubar/candor-ai/discussions) or an [Issue](https://github.com/iknowkungfubar/candor-ai/issues) with a clear description of what you need help with.
+Open a [Discussion](https://github.com/TurinTech-Solutions/candor-ai/discussions) or an [Issue](https://github.com/TurinTech-Solutions/candor-ai/issues) with a clear description of what you need help with.
 
 ---
 
