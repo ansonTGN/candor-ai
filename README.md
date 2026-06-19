@@ -45,6 +45,34 @@ curl -sfL https://raw.githubusercontent.com/iknowkungfubar/candor-ai/main/instal
 candor doctor
 ```
 
+## Why Rust?
+
+Most AI agent frameworks are written in Python (AutoGPT, LangChain, CrewAI). candor-ai is built in Rust for three reasons:
+
+| Concern | Python frameworks | candor-ai (Rust) |
+|---------|------------------|-----------------|
+| **Memory safety** | GC pauses, buffer overflows possible | Compile-time guarantees, no GC |
+| **Distribution** | Requires Python runtime + 500MB+ deps | Single 57MB binary, no runtime needed |
+| **Performance** | GIL-bound, interpreted | Native speed, true parallelism |
+| **Sandboxing** | Subprocess isolation (porous) | WASM runtime (wasmtime) — real capability-based security |
+| **Concurrency** | asyncio (cooperative) | Tokio (preemptive, multi-threaded) |
+
+**Bottom line**: candor-ai gives you an AutoGPT-class agent that installs with `cargo install` and runs as a single binary — no Python, no virtualenvs, no dependency hell.
+
+### How it compares
+
+| Feature | candor-ai | AutoGPT | LangChain Agents | Rig (Rust) |
+|---------|-----------|---------|-----------------|-----------|
+| Language | Rust | Python | Python | Rust |
+| Install | `cargo install` | `git clone + pip` | `pip install` | `cargo install` |
+| Sandboxing | WASM + bubblewrap | Subprocess only | None built-in | None |
+| Memory | SurrealDB (HNSW) | JSON files | Vector store plugin | Plugin-based |
+| Voice | STT/TTS built-in | Plugin only | None | None |
+| PDA | Identity + git-backed memory | None | None | None |
+| 7-phase loop | Observe→Think→Plan→Build→Execute→Verify→Learn | Think→Act→Observe | Prompt→Tool→Observe | Configurable |
+| Guardrails | 6 rules + 10 doctrines | None | None | None |
+| Binary size | 57MB | 500MB+ (Python + deps) | 200MB+ | ~15MB |
+
 ## Features
 
 ### 🧠 7-Phase Agent Loop
