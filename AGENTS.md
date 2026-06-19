@@ -8,47 +8,74 @@
 
 - **Language:** Rust (edition 2024)
 - **Build System:** Cargo workspace with 11 crates
-- **Architecture:** Multi-crate modular (core, graph, sandbox, cognitive, memory, sentinel, orchestrator, tools, mcp, telemetry)
-- **Desktop:** Desktop application support
-- **Testing:** Rust test framework
-
-## Repository Structure
-
-```
-crates/
-├── candor-core/          # Core types, traits, primitives
-├── candor-graph/         # Knowledge graph implementation
-├── candor-sandbox/       # Secure code execution sandbox
-├── candor-cognitive/     # Cognitive loop (7-phase reasoning)
-├── candor-memory/        # Long-term memory persistence
-├── candor-sentinel/      # Security monitoring & guardrails
-├── candor-orchestrator/  # Agent orchestration & task routing
-├── candor-tools/         # Tool definitions & execution
-├── candor-mcp/           # MCP protocol integration
-└── candor-telemetry/     # Observability & metrics
-bin/candor-ai/            # CLI binary entry point
-tests/                    # Integration tests
-```
-
-## Key Commands
-
-- `cargo build` — Build all crates
-- `cargo test` — Run all tests
-- `cargo clippy` — Lint checks
-- `cargo fmt` — Format code
-- `make install` — Build and install CLI binary
+- **Desktop:** Tauri desktop app support
+- **Testing:** cargo test (unit + integration, 320+ tests)
+- **Linting:** cargo clippy
+- **CI:** GitHub Actions (ci.yml, release.yml)
 
 ## Architecture
 
-- **CLI Binary** (`bin/candor-ai`): Entry point with subcommands (task, chat, voice, pda, health)
-- **7-Phase Loop**: Perceive → Reason → Plan → Act → Reflect → Learn → Evolve
+```
+User Input → candor-orchestrator (7-phase ISA pipeline)
+                ↓
+         candor-graph (state machine + hooks)
+                ↓
+    ┌───────────┼───────────┐
+    ↓           ↓           ↓
+ candor-tools candor-mcp  candor-sandbox
+ (fs/git/shell) (MCP bridge) (WASM/process)
+    ↓           ↓           ↓
+ candor-sentinel (rules, slop detection, doctrine)
+    ↓
+ candor-cognitive (embedding, backends)
+    ↓
+ candor-memory (schema, store)
+    ↓
+ candor-telemetry (metrics, logging)
+```
+
+## Key Patterns
+
+- **7-Phase Cognitive Loop**: Perceive → Reason → Plan → Act → Reflect → Learn → Evolve
+- **Sandboxed Execution**: Cross-platform process isolation, WASM execution, policy enforcement
+- **Hook System**: Hooks at every pipeline stage for observability and customization
 - **PDA System**: Persistent identity, memory, and session management via `~/.candor/`
 - **Voice Stack**: Whisper.cpp (STT) + Piper TTS (speech synthesis)
 - **Tool System**: Pluggable tool registry with sandboxed execution
 - **MCP Integration**: Model Context Protocol for external tool calls
+- **Error Recovery**: Retry policies, error escalation, checkpoint/restore via candor-graph
+
+## Repository Structure
+
+```
+candor-ai/
+├── bin/candor-ai/          # CLI entry point (task, chat, voice, pda, health)
+├── crates/
+│   ├── candor-core/        # Core types, traits, primitives, error, protocol
+│   ├── candor-graph/       # Knowledge graph, state machine, hooks, recovery
+│   ├── candor-sandbox/     # Secure execution sandbox, WASM, policies
+│   ├── candor-cognitive/   # 7-phase cognitive loop, LLM backends, embedding
+│   ├── candor-memory/      # Long-term memory persistence, schema, store
+│   ├── candor-sentinel/    # Security monitoring, slop detection, guardrails
+│   ├── candor-orchestrator/ # Agent orchestration, task routing, approval gate
+│   ├── candor-tools/       # Tool definitions (fs, git, shell, search, test)
+│   ├── candor-mcp/         # MCP protocol integration
+│   ├── candor-telemetry/   # Observability & metrics
+│   └── candor-daemon/      # Background daemon
+└── desktop/                # Tauri desktop app
+```
+
+## Key Commands
+
+- `cargo check --workspace` — Type check all crates
+- `cargo test --workspace` — Run all tests (320+)
+- `cargo clippy --workspace -- -D warnings` — Lint check
+- `cargo fmt --check` — Format check
+- `cargo build` — Build all crates
 
 ## Quality Gates
 
-- `cargo test --workspace`
-- `cargo clippy -- -D warnings`
-- `cargo fmt --check`
+- `cargo check --workspace` — 0 errors
+- `cargo clippy --workspace -- -D warnings` — 0 warnings
+- `cargo test --workspace` — all pass (320+ tests)
+- `cargo fmt --check` — passes
