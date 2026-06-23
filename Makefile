@@ -29,7 +29,7 @@ check:
 	cargo check --workspace
 
 test:
-	cargo test
+	cargo test --workspace
 
 test-fast:
 	cargo test --test edge_cases -p candor-tools
@@ -62,7 +62,7 @@ clean:
 
 docs:
 	@echo "See docs/ directory for documentation"
-	@ls docs/ -R
+	@if [ -d docs ]; then ls docs/ -R; else echo "No docs/ directory"; fi
 
 desktop:
 	cd desktop && npm install && npm run tauri dev
