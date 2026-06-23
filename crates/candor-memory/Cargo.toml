@@ -10,6 +10,10 @@ documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+default = []
+persistent = ["surrealdb/kv-rocksdb"]
+
 [dependencies]
 candor-core = { workspace = true }
 candor-cognitive = { workspace = true }

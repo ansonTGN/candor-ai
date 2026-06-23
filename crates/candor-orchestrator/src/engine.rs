@@ -818,14 +818,16 @@ impl PhaseContext {
 // ── Code writer helper ──
 
 async fn write_code_files(output: &str, workdir: &str) -> usize {
-    let count = 0;
+    let mut count = 0;
     let mut path: Option<String> = None;
     let mut code = String::new();
     let mut in_block = false;
 
     for line in output.lines() {
         if line.starts_with("### FILE:") || line.starts_with("## FILE:") {
-            flush_file(&path, &code, workdir).await;
+            if flush_file(&path, &code, workdir).await {
+                count += 1;
+            }
             path = Some(
                 line.trim_start_matches("### FILE:")
                     .trim_start_matches("## FILE:")
@@ -843,11 +845,14 @@ async fn write_code_files(output: &str, workdir: &str) -> usize {
             code.push_str(line);
         }
     }
-    flush_file(&path, &code, workdir).await;
+    if flush_file(&path, &code, workdir).await {
+        count += 1;
+    }
     count
 }
 
-async fn flush_file(path: &Option<String>, code: &str, workdir: &str) {
+/// Returns `true` if a file was actually written.
+async fn flush_file(path: &Option<String>, code: &str, workdir: &str) -> bool {
     if let Some(p) = path
         && !code.is_empty()
         && !p.is_empty()
@@ -855,6 +860,9 @@ async fn flush_file(path: &Option<String>, code: &str, workdir: &str) {
         let full = std::path::PathBuf::from(workdir).join(p);
         let _ = tokio::fs::create_dir_all(full.parent().unwrap()).await;
         let _ = tokio::fs::write(&full, code).await;
+        true
+    } else {
+        false
     }
 }
 

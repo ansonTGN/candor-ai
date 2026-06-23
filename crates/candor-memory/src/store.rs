@@ -7,8 +7,12 @@ use tracing::{error, info, instrument};
 use candor_core::error::CoreError;
 use surrealdb::Surreal;
 use surrealdb::engine::local::Db;
+#[cfg(not(feature = "persistent"))]
 use surrealdb::engine::local::Mem;
+#[cfg(feature = "persistent")]
+use surrealdb::engine::local::RocksDb;
 use surrealdb::types::{Datetime, SerdeWrapper};
+use std::path::PathBuf;
 
 /// Represents a single discrete unit of memory inside the vector database.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,26 +31,56 @@ pub struct MemorySystem {
 }
 
 impl MemorySystem {
-    /// Create a new in-memory MemorySystem with lazy schema initialization.
+    /// Create a new MemorySystem with lazy schema initialization.
+    ///
+    /// When the `persistent` feature is enabled, uses SurrealDB's embedded
+    /// RocksDB backend at `~/.candor/data/`.  Otherwise uses an in-memory
+    /// store that is ephemeral — all data is lost on process exit.
+    ///
     /// Schema queries run on first actual operation, not at construction.
     pub async fn new(embedding_dim: usize) -> Result<Self, CoreError> {
-        info!("Creating SurrealDB connection (schema init deferred)");
+        #[cfg(feature = "persistent")]
+        {
+            let db_path = dirs_or_default().join("data");
+            info!(path = %db_path.display(), "Creating persistent SurrealDB connection (RocksDB)");
 
-        let db = Surreal::new::<Mem>(())
-            .await
-            .map_err(|e| CoreError::Internal(format!("SurrealDB connect failed: {e}")))?;
+            let db = Surreal::new::<RocksDb>(db_path)
+                .await
+                .map_err(|e| CoreError::Internal(format!("SurrealDB RocksDB connect failed: {e}")))?;
 
-        db.use_ns("candor_namespace")
-            .use_db("candor_database")
-            .await
-            .map_err(|e| CoreError::Internal(format!("SurrealDB ns/db error: {e}")))?;
+            db.use_ns("candor_namespace")
+                .use_db("candor_database")
+                .await
+                .map_err(|e| CoreError::Internal(format!("SurrealDB ns/db error: {e}")))?;
 
-        info!("SurrealDB memory engine ready (lazy schema)");
-        Ok(Self {
-            db,
-            embedding_dim,
-            schema_init: OnceCell::new(),
-        })
+            info!("SurrealDB persistent engine ready (lazy schema)");
+            return Ok(Self {
+                db,
+                embedding_dim,
+                schema_init: OnceCell::new(),
+            });
+        }
+
+        #[cfg(not(feature = "persistent"))]
+        {
+            info!("Creating in-memory SurrealDB connection (schema init deferred) — data is ephemeral");
+
+            let db = Surreal::new::<Mem>(())
+                .await
+                .map_err(|e| CoreError::Internal(format!("SurrealDB connect failed: {e}")))?;
+
+            db.use_ns("candor_namespace")
+                .use_db("candor_database")
+                .await
+                .map_err(|e| CoreError::Internal(format!("SurrealDB ns/db error: {e}")))?;
+
+            info!("SurrealDB memory engine ready (lazy schema)");
+            Ok(Self {
+                db,
+                embedding_dim,
+                schema_init: OnceCell::new(),
+            })
+        }
     }
 
     /// Lazily initialize schema on first actual operation.
@@ -313,4 +347,13 @@ pub struct ExecutionLogEntry {
     pub action: String,
     pub result: String,
     pub timestamp: Datetime,
+}
+
+/// Resolve the PDA home directory (~/.candor) or fall back to /tmp.
+fn dirs_or_default() -> PathBuf {
+    if let Ok(home) = std::env::var("HOME") {
+        PathBuf::from(home).join(".candor")
+    } else {
+        PathBuf::from("/tmp/candor")
+    }
 }

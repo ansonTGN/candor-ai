@@ -12,6 +12,7 @@ categories.workspace = true
 
 [features]
 default = []
+local-inference = ["dep:mistralrs"]
 vulkan = []
 cuda = []
 
@@ -27,3 +28,4 @@ anyhow = { workspace = true }
 reqwest = { workspace = true }
 uuid = { workspace = true }
 async-trait = { workspace = true }
+mistralrs = { workspace = true, optional = true }

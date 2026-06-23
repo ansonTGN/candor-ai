@@ -41,18 +41,20 @@ The `ToolSandbox` provides a unified interface that auto-routes WASM requests to
 
 Heterogeneous inference plane:
 - **Cloud frontier**: External API routing (Anthropic, OpenAI) for complex reasoning
-- **Local tier**: Quantized models via mistral.rs for high-volume, privacy-sensitive tasks
-- **Embeddings**: TextEmbedding engine for semantic vector generation
+- **Local tier** (experimental, requires `local-inference` feature): Quantized models via mistral.rs for high-volume, privacy-sensitive tasks
+- **Embeddings**: Deterministic hash-based embedding engine (ONNX/fastembed pipeline coming in v1.2)
 
 Dynamic routing: frontier first, local fallback. Circuit breaker pattern on API degradation.
 
 ### 5. Memory (`candor-memory`)
 
-SurrealDB embedded (kv-mem for dev, RocksDB for prod):
+SurrealDB embedded (in-memory by default, persistent RocksDB via `persistent-memory` feature):
 - HNSW vector index for semantic similarity search
 - Project-scoped isolation — queries never leak across projects
 - 135K token hard limit with compaction monitoring
 - Execution log storage for trajectory extraction
+- **Default build**: Ephemeral in-memory store — all data lost on process exit.
+  Enable `persistent-memory` feature for on-disk RocksDB storage at `~/.candor/data/`.
 
 ### 6. Sentinel (`candor-sentinel`)
 

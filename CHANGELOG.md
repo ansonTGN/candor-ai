@@ -90,10 +90,17 @@ All 6 design phases complete. 10 crates, 55 source files, 8,144 lines, 108+ test
 - **Zero compiler warnings**, zero clippy warnings
 - **Status() decomposition**: Extracted count_memory_files() and git_uncommitted_count() helpers
 - **Trailing whitespace**: Cleaned 16 lines across 4 source files
-- mistral.rs live model integration (GGUF loading)
-- ONNX Runtime real embeddings
-- LoRA adapter generation from trajectories
-- Memory Nudge cron for daily log summarization
+
+### Coming in v1.2
+- mistral.rs live model integration (GGUF loading) — use `--features local-inference`
+- ONNX Runtime real embeddings (currently hash-based fallback)
+- LoRA adapter generation from trajectories (scaffold exists)
+- Memory Nudge cron for daily log summarization (daemon not yet scheduled)
+
+### Coming in v1.3
+- macOS Seatbelt sandbox (detection code present, not yet battle-tested)
+- Windows AppContainer sandbox (detection code present, not yet battle-tested)
+- Tauri cross-platform desktop UI (skeleton exists in `desktop/`)
 
 ## [0.1.0] — 2026-05-28
 

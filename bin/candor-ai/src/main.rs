@@ -27,6 +27,7 @@ use candor_orchestrator::OrchestratorEngine;
 
 mod agents;
 mod chat;
+mod config;
 mod pda;
 mod routes;
 mod stt;

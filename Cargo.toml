@@ -92,6 +92,12 @@ clap = { version = "4", features = ["derive", "env"] }
 # Database
 surrealdb = { version = "3", features = ["kv-mem"] }
 
+# Local inference
+mistralrs = { version = "0.7" }
+
+# Configuration
+figment = { version = "0.10", features = ["toml", "env"] }
+
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "stream"] }
 

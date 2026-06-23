@@ -78,7 +78,7 @@ Most AI agent frameworks are written in Python (AutoGPT, LangChain, CrewAI). can
 | Language | Rust | Python | Python | Rust |
 | Install | `cargo install` | `git clone + pip` | `pip install` | `cargo install` |
 | Sandboxing | WASM + bubblewrap | Subprocess only | None built-in | None |
-| Memory | SurrealDB (HNSW) | JSON files | Vector store plugin | Plugin-based |
+| Memory | SurrealDB (kv-mem) | JSON files | Vector store plugin | Plugin-based |
 | Voice | STT/TTS built-in | Plugin only | None | None |
 | PDA | Identity + git-backed memory | None | None | None |
 | 7-phase loop | Observe→Think→Plan→Build→Execute→Verify→Learn | Think→Act→Observe | Prompt→Tool→Observe | Configurable |
@@ -86,6 +86,14 @@ Most AI agent frameworks are written in Python (AutoGPT, LangChain, CrewAI). can
 | Binary size | 57MB | 500MB+ (Python + deps) | 200MB+ | ~15MB |
 
 ## Features
+
+### 📦 Memory Persistence
+
+Memory is ephemeral in the default build (in-memory SurrealDB). All data is lost on process exit. Enable the `persistent-memory` feature flag for on-disk RocksDB storage at `~/.candor/data/`.
+
+```bash
+cargo build --release --features persistent-memory
+```
 
 ### 🧠 7-Phase Agent Loop
 ```
@@ -142,7 +150,7 @@ LLM-driven software engineering agent with the **Ideal State Artifact** (ISA) �
 │(petgraph)│  bwrap) │         │  DB)    │ ceptor  │ + Memory │
 ├─────────┼─────────┼─────────┼─────────┼─────────┼──────────┤
 │  Tools   │   MCP   │  Local  │  Skills │ Recovery│ Voice    │
-│ (12 tools)│ Client  │ Backend │ System  │  Nodes  │ STT/TTS  │
+│ (12 tools)│ Client  │ Backend¹│ System  │  Nodes  │ STT/TTS  │
 └─────────┴─────────┴─────────┴─────────┴─────────┴──────────┘
 ```
 
@@ -153,7 +161,7 @@ LLM-driven software engineering agent with the **Ideal State Artifact** (ISA) �
 | `candor-core` | Shared types, AgentState, ISA, errors | 14 |
 | `candor-graph` | Petgraph runner, lifecycle hooks, recovery | 17 |
 | `candor-sandbox` | wasmtime + bubblewrap, circuit breaker | 12 |
-| `candor-cognitive` | LLM inference, embeddings, 4 backends | 29 |
+| `candor-cognitive` | LLM inference, embeddings (hash-based), 4 backends | 29 |
 | `candor-memory` | SurrealDB with HNSW vector index | 12 |
 | `candor-sentinel` | Guardrails: rules + doctrine | 25 |
 | `candor-orchestrator` | 7-phase agent, ISA climbing, skills | 58 |
@@ -164,7 +172,31 @@ LLM-driven software engineering agent with the **Ideal State Artifact** (ISA) �
 
 **Total**: ~250+ tests, 0 clippy warnings, 0 compiler warnings, 0 CVEs.
 
+¹ **Local Backend**: Requires `--features local-inference` at build time. The default build uses mock responses for local inference. See [Feature Flags](#feature-flags) below.
+
 > Built with Rust edition 2024. See [crates.io](https://crates.io/crates/candor-ai) for the published package.
+
+## Feature Flags
+
+Candor uses Cargo feature flags to gate optional functionality. The default build gives you a fully functional agent with cloud LLM backends, all 12 tools, WASM sandboxing, PDA, and voice.
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `local-inference` | off | Enables mistral.rs for on-device GGUF model inference |
+| `persistent-memory` | off | Switches SurrealDB from in-memory (ephemeral) to on-disk RocksDB storage at `~/.candor/data/` |
+
+```bash
+# Build with local inference
+cargo build --release --features local-inference
+
+# Build with persistent memory
+cargo build --release --features persistent-memory
+
+# Build with both
+cargo build --release --features "local-inference,persistent-memory"
+```
+
+**Memory note**: The default build stores all memory in-memory only — data is lost when the process exits. For persistent storage, enable `persistent-memory`.
 
 ## Configuration
 
@@ -188,6 +220,10 @@ export CANDOR_AUDIO_DEVICE="default"
 export CANDOR_RECORD_SECONDS="5"
 export CANDOR_TTS_MODEL="/path/to/piper-model.onnx"
 export CANDOR_TTS_VOICE="en-us"
+
+# TOML config file (loaded by Figment, overridden by env vars):
+#   ./candor.toml          (project-local)
+#   ~/.candor/config.toml  (user-global)
 ```
 
 ## Performance
